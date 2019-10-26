@@ -3,11 +3,11 @@
 // @namespace    ngreyson
 // @version      1.0
 // @description  Require more than one Answer entry for kanji/vocab with multiple correct answers
+// @require      https://unpkg.com/wanakana@4.0.2/umd/wanakana.min.js
 // @include      https://www.wanikani.com/review/session
 // @include      https://www.wanikani.com/
 // @include      https://www.wanikani.com/dashboard
 // @include      https://www.wanikani.com/lesson/session*
-// @include      http://www.wanikani.com/lesson/session*
 // @license      MIT; http://opensource.org/licenses/MIT
 // @grant        none
 // ==/UserScript==
@@ -20,7 +20,7 @@
  *  remembering multiple readings and meanings for kanji and vocab.
  *  I could get by the kanji with knowing one particular meaning
  *  (such as 'foot' for 足 whereas it can also mean 'sufficient')
- *  so when it came time to learn vocab using that the latter meaning
+ *  so when it came time to learn vocab using the latter meaning
  *  I found it difficult to remember.
  *
  *  Same went for multiple on'yomi or kun'yomi readings, since the
@@ -113,10 +113,16 @@
  *         meaning before moving on. (recommended since here it won't
  *         ding your SRS level should you get any wrong)
  *
+ *    Disallow Close:
+ *       - When checked, correct answers that aren't fully accurate are
+ *         refused, allowing you to re-enter them. This is independent
+ *         of 'Strict Mode,' since typos happen.
+ *
  *    Strict Mode:
  *       - When checked, all leniency is gone. No redo's for entering
- *         the wrong kanji reading, or for submitting the same answer
- *         more than once. If you mess up, it's wrong.
+ *         the wrong kanji reading, for submitting the same answer
+ *         more than once, or submitting blank answers. If you mess up,
+ *         it's wrong.
  *
  * Particulars
  *    Show Total Required:
@@ -161,6 +167,7 @@
  * Background Incorrect:
  *    - Background color of the submitted answers bar should your
  *      answer(s) be incorrect.
+ *
  * Default Text:
  *    - Text color of any leftover possible answers beyond your
  *      required number of submissions.
@@ -183,7 +190,7 @@
  * CHANGELOG
  *****************************************************************
  *
- * 1.0.0
+ * 1.0
  *  - Initial release
  */
 
@@ -227,10 +234,10 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         // for review/lessons page
         if (document.readyState === 'complete') {
             wkof.include('Apiv2, ItemData, Settings');
-            wkof.ready('Settings').then(load_settings).then(startup);
+            wkof.ready('Settings').then(load_settings).then(install_css);
             reviewMain(); // run after DOM fully loaded
         } else {
-            let a=function(){wkof.include('Apiv2, ItemData, Settings');wkof.ready('Settings').then(load_settings).then(startup).then(reviewMain)};
+            let a=function(){wkof.include('Apiv2, ItemData, Settings');wkof.ready('Settings').then(load_settings).then(install_css).then(reviewMain)};
             window.addEventListener("load", a, false);
         }
     }
@@ -267,8 +274,9 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             showRest:       true,
             isBundled:      true,
             mrmrLessons:    true,
+            disallowClose:  true,
+            tolerance:      0,
             theme:          themes.wanikani,
-            // themeName:      'wanikani',
         };
         let colors = getColors(base.theme);
         let defaults = Object.assign({},base,colors);
@@ -279,13 +287,8 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
 
     //=============================================================================
-    // Startup
+    // Startup (for Dashboard)
     //=============================================================================
-    function startup() {
-        install_css();
-    }
-
-    // startup on dashboard
     function startupMenu() {
         install_css();
         install_menu();
@@ -363,6 +366,18 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                                         },
                                         mrmrLessons: {type:'checkbox', label:'Start With Lessons', hover_tip: 'If a lesson item has more than one answer,\nrequire them all to progress.',
                                             default: settings.mrmrLessons
+                                        },
+                                        disallowClose: {type:'checkbox', label:'Refuse \'Close\' Answers', hover_tip: 'Refuses correct, but inaccurate, answers\nand allows you to re-submit them.',
+                                            default: settings.disallowClose,
+                                            on_change:  config_settings
+                                        },
+                                        tolerance: {type:'dropdown', label:'Accuracy Tolerance', hover_tip: 'Control how lenient you want WK to be with accuracy.',
+                                            default: settings.tolerance,
+                                            content: {
+                                                0: 'Relaxed',
+                                                1: 'Moderate',
+                                                2: 'Strict'
+                                            }
                                         },
                                         strict: {type:'checkbox', label:'Strict Mode', hover_tip: 'Removes safety nets for on\'yomi/kun\'yomi reading\nexceptions, and blank or duplicate submissions.',
                                             default: settings.strict
@@ -457,34 +472,30 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         switch ($('#mrmr_requirements').val()) {
             case showOnly:
             case requireAll:
-                $('#mrmr_minRequire').attr('disabled','disabled');
-                $("select").filter(function(){
-                    return $("option", this).val() >= 1;
-                }).attr('disabled','disabled');
+                $('#mrmr_minRequire').closest('.row').css('display', 'none');
+                $('#mrmr_grp_srsReq').css('display','none');
                 break;
             case minRequire:
-                $('#mrmr_minRequire').removeAttr('disabled');
-                $("select").filter(function(){
-                    return $("option", this).val() >= 1;
-                }).attr('disabled','disabled');
+                $('#mrmr_minRequire').closest('.row').css('display', 'block');
+                $('#mrmr_grp_srsReq').css('display','none');
                 break;
             case srsBased:
-                $('#mrmr_minRequire').attr('disabled','disabled');
-                $("select").filter(function(){
-                    return $("option", this).val() >= 1;
-                }).removeAttr('disabled');
+                $('#mrmr_minRequire').closest('.row').css('display', 'none');
+                $('#mrmr_grp_srsReq').css('display','block');
                 break;
         }
 
         // hide/show Correct (Incorrect Background) option
-        if(settings.isBundled) {
-            if (isColorful($('#mrmr_themeName').val())) {
-                $('#mrmr_incorrect').closest('.row').css('display', 'block');
-            } else {
-                $('#mrmr_incorrect').closest('.row').css('display', 'none');
-            }
+        if(settings.isColorful) {
+            $('#mrmr_incorrect').closest('.row').css('display', 'block');
         } else {
             $('#mrmr_incorrect').closest('.row').css('display', 'none');
+        }
+
+        if(settings.disallowClose) {
+            $('#mrmr_tolerance').closest('.row').css('display', 'block');
+        } else {
+            $('#mrmr_tolerance').closest('.row').css('display', 'none');
         }
     }
 
@@ -506,7 +517,6 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     //=============================================================================
     let isThemeChange = false;
     function updateStyle() {
-        wk_mrmr.debugToggle && console.log('running updateStyle...');
         let id = $(this).attr('id');
         let name = $(this).attr('name');
         let val = $(this).val();
@@ -520,7 +530,6 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
     // sets new theme on dropdown selection
     function themeChange(theme) {
-        wk_mrmr.debugToggle && console.log('running themeChange...');
         let newTheme = '';
 
         switch (theme) {
@@ -551,17 +560,18 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
     // update/set colors for selected theme
     function setColors(theme) {
-        wk_mrmr.debugToggle && console.log('running setColors...');
         let themeName = JSON.stringify(theme.themeName);
-
+        settings.isColorful = isColorful(theme.themeName);
         settings.isBundled = isAllAtOnce();
+
         $('#mrmr_bgCorrectColor').val(theme.bgCorrectColor).change();
         $('#mrmr_bgIncorrectColor').val(theme.bgIncorrectColor).change();
         $('#mrmr_defaultColor').val(theme.defaultColor).change();
         $('#mrmr_incorrectColor').val(theme.incorrectColor).change();
         $('#mrmr_correct').val(theme.correct).change();
         $('#mrmr_incorrect').val(theme.incorrect).change();
-        if (isColorful(themeName) && settings.isBundled) {
+
+        if (settings.isColorful) {
             $('#mrmr_incorrect').closest('.row').css('display', 'block');
         } else {
             $('#mrmr_incorrect').closest('.row').css('display', 'none');
@@ -573,16 +583,13 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
     // runs when user changes a color input option
     function setCustomColor(val, prop) {
-        wk_mrmr.debugToggle && console.log('running setCustomColor...');
         themes.custom[prop] = val;
         setToCustom();
     }
 
     // programmatically change selected theme option
     function setToCustom() {
-        wk_mrmr.debugToggle && console.log('running setToCustom...');
         let selectedTheme = $('select[name="themeName"] option:selected');
-        wk_mrmr.debugToggle && console.log('selectedTheme: ' + selectedTheme.val());
         if ($('#mrmr_themeName').val() !== 'Custom') {
             if (!selectedTheme.attr('name').match(/(custom)/i)) {
                 selectedTheme.attr('selected', null);
@@ -651,66 +658,39 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     //=============================================================================
     // reviewMain() => answer checker section
     //=============================================================================
-
     function reviewMain() {
-        wk_mrmr.debugToggle && console.log('running reviewMain()...');
         let settings = window.wkof.settings.mrmr;
-        if (!settings.mrmrLessons && window.location.pathname.match(/(lesson)/i)) {
-            wk_mrmr.debugToggle && console.log('abandoning script for lesson...');
-            return;
-        }
+        if (!settings.mrmrLessons && window.location.pathname.match(/(lesson)/i)) return;
 
-        //======================================
-        // Global Vars for reviewMain()
-        //======================================
-        let lightning, lightningSet, lightMode, lightClicked, lightElem;
-        let item, questType;
-        let startUp = false;
-        let aVars = {
-            tries : 0,
-            numPossible : 0,
-            reqNum : 0,
-            spanText : [],
-            answers : [],
-            itemType : '',
-            aType : '',
-            submit: false,
-            convertedToPartial : false,
-            rightAnswers : [],
-            wrongAnswers : [],
-            exceptions: 0,
-            possibleAnswers : [],
-            pulledAnswers: []
+        var lightning = {
+            installed: false,
+            on: false,
+            clicked: false,
+            bolt: null,
+            init: setLightningCompat
         };
 
-        if (!startUp) {
-            runStartUp();
-        }
-
-        function runStartUp() {
-            installHTML();
-            setLightningCompat();
-            initValues();
-            startUp = true;
-        }
+        lightning.init();
+        var mrmr = initValues();
+        mrmr.load();
+        installHTML();
 
         //======================================
         // Lightning Mode Compatibility
         //======================================
         function setLightningCompat() {
-            lightElem = $('#lightning-mode');
-            lightning = (lightElem.length>0);
-            lightClicked = false;
-            if (lightning) checkLightning();
-            lightningSet = true;
+            this.bolt = $('#lightning-mode') || null;
+            this.installed = (this.bolt.length>0);
+            if (this.installed) checkLightning();
+            wk_mrmr.debugToggle && console.log(lightning);
         }
 
         function checkLightning() {
-            lightMode = lightElem.hasClass('active');
+            lightning.on = lightning.bolt.hasClass('active');
         }
 
         //======================================
-        // HTML Installation (answer bar, # remaining)
+        // Install HTML
         //======================================
         function installHTML() {
             if (!$('#divCorrect').length > 0) {
@@ -727,19 +707,15 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             }
         }
 
-        // changes displayed number of remaining submissions
-        // updated every semiconol addition/deletion and for blank answers/reading exceptions
         function updateRemaining() {
             wk_mrmr.debugToggle && console.log('updating remaining...');
-            let r = (aVars.reqNum - aVars.tries);
+            let r = (mrmr.numRequired - mrmr.tries);
             r = ((r<0)?0:r).toString();
             r = '  ('+r+')';
             $('#remaining').text(r);
         }
 
-        //======================================
-        // Disable Obnoxious Info Box
-        //======================================
+        // disables info-box
         $('#additional-content #option-item-info').on('click', function(e) {
             if (!$('fieldset').hasClass('incorrect')) {
                 e.stopPropagation();
@@ -751,7 +727,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         });
 
         //======================================
-        // Mutation Observer to re-init values
+        // Mutation Observer
         //======================================
         const targetNode = document.getElementById('character');
         const oSettings = { attributes: true, childList: true, subtree: true };
@@ -759,115 +735,126 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             $('#lblCorrect').text('');
             $('#divCorrect').addClass('hidden');
             // if lightning mode installed and turned on prior to this script turning if off, turn it back on
-            if (lightning && lightMode && lightClicked) {
-                $('.icon-bolt').trigger('click');
+            if (lightning.installed && lightning.on && lightning.clicked) {
+                lightning.bolt.trigger('click');
+                lightning.clicked = false;
             }
 
-            initValues();
+            mrmr = mrmr.reset();
+            mrmr.load();
         };
 
         const observer = new MutationObserver(callback);
         observer.observe(targetNode, oSettings);
 
         //======================================
-        // Keyup Listener
+        // Key-up Listener
         //======================================
-        $(document).on("keyup.reviewScreen",function(n){
-            if (!aVars.submit) {
-                let t=$("#user-response");
+        $(document).on("keyup.reviewScreen",function(n) {
+            if (!mrmr.submit.ready) {
+                let t = $('#user-response');
                 let key = n.key || n.code || n.keyCode;
-                if (key === ';' || key === 'Semicolon' || key === 186) {
-                    // if(t.is(":enabled")&&!t.is(":focus")) {
-                    aVars.tries++;
+                if (key===';'||key==='Semicolon'||key===186) {
+                    mrmr.tries++;
                     if (settings.showNumPossible) updateRemaining();
-                    wk_mrmr.debugToggle && console.log('tries: ' + aVars.tries);
-                    if (!settings.isBundled || aVars.tries >= aVars.reqNum) {
-                        checkAnswer();
-                    } else {return;}
-                    // }
+                    if (!settings.isBundled || mrmr.tries >= mrmr.numRequired) {
+                        mrmr.eval.answer();
+                    }
                 } else
-                if ((key === 'Backspace' || key === 8) && settings.isBundled) {
-                    aVars.tries = (t.val().split(';').length-1); // allow revision before submitting batch answer
-                    wk_mrmr.debugToggle && console.log('tries: ' + aVars.tries);
+                if ((key==='Backspace'||key===8) && settings.isBundled) {
+                    mrmr.tries = (t.val().split(';').length-1);
                     updateRemaining();
                 }
             }
         });
 
         //=============================================================================
-        // Retrieve Current Item R/M Info
+        // Clear Values On mrmr Object
         //=============================================================================
         function initValues() {
+            return {
+                //item info
+                item: {},
+                itemType: null,
+                qType: null,
+                numPossible: 0,
+                numRequired: 0,
 
-            getItem();
-            lightClicked = false;
-            wk_mrmr.debugToggle && console.log('running initValues()...');
-            aVars.itemType     = getItemType(item);
-            aVars.aType        = questType;
-            getNumPossible(aVars.itemType, aVars.aType);
-            aVars.answers      = [];
-            aVars.tries        = 0;
-            aVars.spanText     = [];
-            aVars.submit       = false;
-            aVars.convertedToPartial = false;
-            aVars.rightAnswers = [];
-            aVars.wrongAnswers = [];
-            aVars.pulledAnswers= [];
-            aVars.exceptions   = 0;
-            aVars.showRest     = settings.showRest;
+                //answer arrays
+                answers: {
+                    possible: [],
+                    pulled: [],
+                    right: [],
+                    wrong: [],
+                    all: [],
+                    spanText: [],
+                },
 
-            installHTML();
-            $('#divCorrect').removeClass();
-            $('#divCorrect').addClass('hidden');
-            wk_mrmr.debugToggle && console.log(aVars);
+                //status
+                tries: 0,
+                exceptions: 0,
+                accFail: false,
+                convertedToPartial: false,
+
+                //functions
+                reset: initValues,
+                load: getItemInfo,
+                eval: {
+                    answer: checkAnswer,
+                    similarity: evalSimilarity,
+                    exception: checkException
+                },
+                submit: {
+                    ready: false,
+                    checkReady: checkSubmitReady,
+                    refuse: refuseSubmission,
+                    exception: submitException,
+                    formal: triggerSubmission
+                }
+            };
         }
 
-        // retrieve Item object, set 'global' item & questType variables
-        function getItem() {
+        //=============================================================================
+        // Populate Item Info
+        //=============================================================================
+        function getItemInfo() {
             if (window.location.pathname.match(/(review)/i)) {
-                item = $.jStorage.get('currentItem');
-                questType = $.jStorage.get('questionType');
+                mrmr.item = $.jStorage.get('currentItem');
+                mrmr.qType = $.jStorage.get('questionType');
             } else if (window.location.pathname.match(/(lesson)/i)) {
-                item = $.jStorage.get('l/currentQuizItem');
-                questType = $.jStorage.get('l/questionType');
+                mrmr.item = $.jStorage.get('l/currentQuizItem');
+                mrmr.qType = $.jStorage.get('l/questionType');
             }
-        }
 
-        function getItemType(item) {
-            if (item.voc) {
-                return 'v';
-            } else if (item.kan) {
-                return 'k';
-            } else {return 'r';}
-        }
+            if (mrmr.item.voc) mrmr.itemType = 'v';
+            else if (mrmr.item.kan) mrmr.itemType = 'k';
+            else mrmr.itemType = 'r';
 
-        function getNumPossible(itemType, aType) {
-            wk_mrmr.debugToggle && console.log('fetching total possible answers...');
-            let type = itemType + aType;
-            switch (type) {
+            let type = mrmr.itemType + mrmr.qType;
+            switch(type) {
                 case "vreading":
-                    aVars.possibleAnswers = item.kana;
+                    mrmr.answers.possible = mrmr.item.kana.slice();
                     break;
                 case "kreading":
-                    if (item.emph.toLowerCase() === 'onyomi')
-                        aVars.possibleAnswers = item.on;
+                    if (mrmr.item.emph.toLowerCase() === 'onyomi')
+                        mrmr.answers.possible = mrmr.item.on.slice();
                     else
-                        aVars.possibleAnswers = item.kun;
+                        mrmr.answers.possible = mrmr.item.kun.slice();
                     break;
                 case "vmeaning":
                 case "kmeaning":
                 case "rmeaning":
-                    aVars.possibleAnswers = item.en;
+                    mrmr.answers.possible = mrmr.item.en.slice();
                     break;
             }
 
-            wk_mrmr.debugToggle && console.log(aVars.possibleAnswers);
-            if (aVars.possibleAnswers.length >1) {
-                removeCloseAnswers(aVars.possibleAnswers);
-            }
+            if (mrmr.answers.possible.length > 1) removeCloseAnswers(mrmr.answers.possible);
+            mrmr.numPossible = mrmr.answers.possible.length;
+            mrmr.numRequired = getRequirements(mrmr.numPossible);
 
-            aVars.numPossible = aVars.possibleAnswers.length;
-            aVars.reqNum = getRequirements(aVars.numPossible);
+            installHTML();
+            $('#divCorrect').removeClass();
+            $('#divCorrect').addClass('hidden');
         }
 
         function getRequirements(numPossible) {
@@ -883,8 +870,8 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                 case 'minRequire': return Math.min(numPossible, settings.minRequire);
                 case 'requireAll': return numPossible;
                 case 'srsBased':
-                    let lvlReq = getSRSReq(item.srs);
-                    if (lvlReq !== 'All') lvlReq = parseInt(lvlReq);
+                    let lvlReq = getSRSReq(mrmr.item.srs);
+                    if (lvlReq !== 'all') lvlReq = parseInt(lvlReq);
                     if (lvlReq > numPossible || lvlReq === 'all') return numPossible;
                     else return lvlReq;
             }
@@ -902,329 +889,321 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         }
 
         //======================================
-        // Remove "Near-Duplicate" Meanings
+        // Pull Near-Dupes From Answer Array
         //======================================
         function removeCloseAnswers(answers) {
             wk_mrmr.debugToggle && console.log('removing close answers...');
-            let v;
-            let result = false;
-            let removed = [];
-            for(let i = 0; i<answers.length; i++) {
-                v = answers[i]; // preserve value
-                answers.splice(i,1); // temporarily remove it
+            let similar = false;
+            let kanaFlag = false;
 
-                for(let j = 0; j<answers.length; j++) { // iterate through remaining values
-                    result = evalSimilarity(v,answers[j]);
-                    wk_mrmr.debugToggle && console.log('eval results: ' + result);
-                    if (result) {
-                        removed.push(answers[j]); // if similar match found, push to removed answers
-                        answers.splice(j,1); // then remove it from the answers array
+            for (let i in answers) {
+                let a = answers[i];
+                answers.splice(i,1);
+                for (let j = parseInt(i); j<answers.length; j++) {
+                    let b = answers[j];
+                    if (mrmr.qType==='reading'&&(wanakana.toRomaji(a)===wanakana.toRomaji(b))) {
+                        let t = wanakana.toRomaji(b,{upcaseKatakana:true});
+                        kanaFlag = (/[A-Z]/.test(t));
+                    }
+                    if (!kanaFlag) similar = evalSimilarity(a,b);
+                    if (similar || kanaFlag) {
+                        answers.splice(j,1);
                     }
                 }
-                answers.splice(i,0,v); // add pulled value back in at original location to prevent re-running it
+                if (!kanaFlag) answers.splice(i,0,a);
             }
-            wk_mrmr.debugToggle && console.log('answers: ' + answers);
-            wk_mrmr.debugToggle && console.log('removed: ' + removed);
-            return answers;
         }
 
         //=============================================================================
-        // Check and Parse Input
+        // Sanitize, Parse, Eval Answers
         //=============================================================================
-        // Main Answer Checker (for batch & single)
         function checkAnswer() {
-            wk_mrmr.debugToggle && console.log('checking answer...');
+            wk_mrmr.debugToggle && console.log('starting answer check...');
             let text = $('#user-response').val();
             let spanText = '';
-            let result;
+            let result = {};
+            let accurate = true;
 
-            // array-ify, trim submission and remove empty elements
+            // sanitize/remove blank
             text = text.split(';');
-            text = text.map(e => e.trim());
-            text = text.filter(e => e.length);
-            wk_mrmr.debugToggle && console.log('filtered text array: ' + text);
+            text = text.map(e=>e.trim());
+            text = text.filter(e=>e.length);
 
-            // check for blank submissions
-            if (settings.isBundled && (text.length < aVars.tries)) {
-                aVars.tries = text.length; // if blank answers submitted, update 'tries'
-                refuseSubmission(text); // refuse submission
+            if ((settings.isBundled && (text.length < mrmr.tries)) ||
+                text.length===0) {
+                mrmr.tries = (settings.isBundled)?text.length:mrmr.tries-1;
+                mrmr.submit.refuse(text,0);
                 return;
-            } else {
-                if (text.length === 0) { // same as above, but for non-batch entries
-                    aVars.tries--;
-                    refuseSubmission(text);
-                    return;
-                }
             }
 
-            // evaluate submitted answer(s)
-            for (let i = 0; i<text.length; i++) {
+            for (let i in text) {
                 result = evalAnswer(text[i]);
-                if (!result.passed) {
-                    if (result.exception && !settings.strict) {
-                        submitException(text[i]); // for wrong reading or kana/non-kana if strict mode off
-                        return;
-                    }
+                if (!result.passed && (result.exception && !settings.strict)) {
+                    mrmr.submit.exception(text[i]);
+                    return;
+                } else if (result.passed && (!result.accurate && settings.disallowClose)) {
+                    mrmr.tries--;
+                    text.splice(i,1);
+                    accurate = false;
                 }
-                spanText = wrapText(text[i],result.passed);
-                aVars.spanText.push(spanText);
+                if ((result.passed && accurate) || !result.passed && result.accFail) {
+                    spanText = wrapText(text[i],result.passed);
+                    mrmr.answers.spanText.push(spanText);
+                }
             }
 
-            if (aVars.rightAnswers.length < aVars.numReq) {
-                if($('#divCorrect').hasClass('hidden')) showBar();
+            if (text.length < mrmr.numRequired && !accurate) {mrmr.submit.refuse(text,1);return;}
+            if (mrmr.answers.right.length < mrmr.numRequired &&
+                $('#divCorrect').hasClass('hidden')){
+                showBar();
             }
 
-            wk_mrmr.debugToggle && console.log(aVars);
             populateBar();
-            checkSubmitReady();
+            mrmr.submit.checkReady();
         }
 
-        // evaluation of each individual answer using WK's answerChecker
+        //======================================
+        // evalAnswer() -> eval each answer
+        //======================================
         function evalAnswer(text) {
-            wk_mrmr.debugToggle && console.log('evaluating answer...');
-            let type,h,p;
-            let isSimilar = false;
+            wk_mrmr.debugToggle && console.log('evaluating single answer...');
+            let similar = false;
             let result = {};
-            type = aVars.aType;
+            let type = mrmr.qType;
 
-            // if in 'one at a time' mode, compare new answers against previous correct ('pulled')
-            // answers so they can't cheat via duplicate right entries
-            if (aVars.pulledAnswers.length > 0) {
-                wk_mrmr.debugToggle && console.log(aVars.pulledAnswers);
-                for (let i = 0; i < aVars.pulledAnswers.length;i++) {
-                    isSimilar = evalSimilarity(text,aVars.pulledAnswers[i]);
-                    wk_mrmr.debugToggle && console.log('isSimilar: ' + isSimilar);
-                    if (isSimilar) break;
+            if (mrmr.answers.pulled.length > 0) {
+                for (let i in mrmr.answers.pulled) {
+                    similar = mrmr.eval.similarity(text,mrmr.answers.pulled[i]);
+                    if (similar) break;
                 }
             }
 
-            // if strict mode or batch answer, duplicate answers return FAIL
-            // pushes wrong answer into wrong array for submission evaluation and 'error message'
-            if (isSimilar) {
-                result = answerChecker.evaluate(type,"nice try buckaroo can't fool me");
+            if (similar) {
+                result = answerChecker.evaluate(type, "nice tey buckaroo can't fool me");
                 if (settings.strict || settings.isBundled) {
-                    aVars.wrongAnswers.push("duplicate answer entered");
-                    aVars.answers.push(text);
+                    mrmr.answers.wrong.push("diplicate answer entered");
+                    mrmr.answers.all.push(text);
                 }
-            } else {
-                result = answerChecker.evaluate(type,text);
-            }
+            } else result = answerChecker.evaluate(type,text);
 
-            wk_mrmr.debugToggle && console.log(result);
-            // check for any possible exceptions
-            if (!result.passed) {
-                // if no reading exception, check for kana/non-kana exception
-                result.exception = (!result.exception) ? checkOtherException(text) : true;
-                // for wrong reading when strict mode is off, don't push val into any array
-                // if strict mode is off and it's not batch answer, don't count try or push to array
-                if (!settings.strict &&
-                    ((isSimilar && !settings.isBundled)|| result.exception)) {
-                    aVars.tries--;
-                    updateRemaining();
-                    if (result.exception) {aVars.exceptions++;}
-                    return result;
-                }
-            }
-
-            // if answer is correct and there's more than 0, remove corresponding value from 'possibleAnswers' array
-            if (result.passed && aVars.possibleAnswers.length>0){
-                for(let i = 0; i<aVars.possibleAnswers.length; i++) {
-                    let v = aVars.possibleAnswers[i];
-                    v = answerChecker.stringFormat(v);
-                    if ((h=levenshteinDistance(v,text))<=(p=answerChecker.distanceTolerance(v))) {
-                        aVars.pulledAnswers.push(aVars.possibleAnswers[i]);
-                        aVars.possibleAnswers.splice(i,1);
-                        break;
+            switch (result.passed===true) {
+                case false:
+                    result.exception = (!result.exception)?mrmr.eval.exception(text):true;
+                    if (!settings.strict &&
+                        ((similar && !settings.isBundled) || result.exception)) {
+                        mrmr.tries--;
+                        updateRemaining();
+                        if (result.exception) {mrmr.exceptions++;}
+                        return result;
                     }
-                }
+                    break;
+                case true:
+                    if (!result.accurate && settings.disallowClose) {
+                        if (mrmr.accFail) result.passed = false;
+                        else return result;
+                    }
+                    break;
             }
 
-            // push answer into appropriate arrays
-            aVars.answers.push(text);
-            if (result.passed) aVars.rightAnswers.push(text);
-            else aVars.wrongAnswers.push(text);
+            mrmr.answers.all.push(text);
+            if (result.passed) mrmr.answers.right.push(text);
+            else mrmr.answers.wrong.push(text);
 
             return result;
         }
 
         //======================================
-        // Exceptions, Duplicates, Blank
+        // Modified Answer Checker
+        //======================================
+        answerChecker.oldEval = answerChecker.evaluate;
+        answerChecker.evaluate = function(e,t) {
+            wk_mrmr.debugToggle && console.log('running modified evaluate...');
+            let result = answerChecker.oldEval(e,t);
+            result.accFail = false;
+            if (result.passed) {
+                for (let i in mrmr.answers.possible) {
+                    let h,p;
+                    let v = mrmr.answers.possible[i];
+                    v = answerChecker.stringFormat(v);
+
+                    if ((h=levenshteinDistance(v,t))<=(p=answerChecker.distanceTolerance(v))) {
+                        result.accuracy = h;
+                        result.tolerance = p;
+                        let tol = (settings.disallowClose)?parseInt(p):0;
+                        let userTol = settings.tolerance;
+                        tol = ((p-userTol)<0)?0:p-userTol;
+                        if (h>tol) {
+                            mrmr.accFail = true;
+                            result.accFail = true;
+                        } else if (result.accurate || !settings.disallowClose) {
+                            mrmr.answers.pulled.push(mrmr.answers.possible[i]);
+                            mrmr.answers.possible.splice(i,1);
+                        }
+                        break;
+                    }
+                }
+            }
+            wk_mrmr.debugToggle && console.log(result);
+            return result;
+        };
+
+        //======================================
+        // Compare Two Strings For Similarity
         //======================================
         function evalSimilarity(entry,original) {
-            let t,m;
-            t = answerChecker.stringFormat(entry);
-            m = answerChecker.stringFormat(original);
-            return (levenshteinDistance(t,m)<=answerChecker.distanceTolerance(t));
+            wk_mrmr.debugToggle && console.log('checking similarity...');
+            let e = answerChecker.stringFormat(entry);
+            let o = answerChecker.stringFormat(original);
+            wk_mrmr.debugToggle && console.log(e + ', ' + o);
+            return (levenshteinDistance(e,o)<=answerChecker.distanceTolerance(e));
         }
 
-        function checkOtherException(text) {
-            if (questType === 'meaning') {
-                return answerChecker.isKanaPresent(text);
-            } else {
-                return answerChecker.isNonKanaPresent(text);
-            }
+        function checkException(text) {
+            if (mrmr.qType==='meaning') return answerChecker.isKanaPresent(text);
+            else return answerChecker.isNonKanaPresent(text);
         }
 
-        // for blank submissions only (skips checkSubmitReady())
-        function refuseSubmission(text) {
-            wk_mrmr.debugToggle && console.log('refusing blank answer(s)...');
+        //=============================================================================
+        // Submissions: Refusals and Exceptions
+        //=============================================================================
+        function refuseSubmission(text,type) {
+            wk_mrmr.debugToggle && console.log('refusing submission...');
             let urText = text;
             let lblText = '';
             updateRemaining();
-            if (settings.isBundled || aVars.spanText.length === 0) {
+
+            if (settings.isBundled || mrmr.answers.spanText.length===0) {
                 urText = urText.join('; ');
-                lblText = 'Blank answer(s) submitted, please try again.'
+                if (type===0) lblText = 'Blank answer(s) submitted, please try again.';
+                else lblText = 'Not quite accurate... try again.';
             } else {
-                lblText = aVars.spanText.join(', ');
+                lblText = mrmr.answers.spanText.join(', ');
             }
+
             if (urText.length > 0) urText += '; ';
             $('#user-response').val(urText).trigger('input');
             $('#lblCorrect').html(lblText);
             showBar();
         }
 
-        //======================================
-        // Answer Bar Text Styling
-        //======================================
-        // wrap answers in classed spans to color code results
+        function submitException(text) {
+            wk_mrmr.debugToggle && console.log('submitting exception...');
+            text = (mrmr.answers.wrong.length > 0)?mrmr.answers.wrong[0]:text;
+            $('#user-response').val(text).trigger('input');
+            mrmr.submit.formal();
+        }
+
+        //=============================================================================
+        // Submissions: Prep and Check Readiness
+        //=============================================================================
         function wrapText(text,result) {
             wk_mrmr.debugToggle && console.log('wrapping text...');
-            if(isColorful(settings.themeName) && aVars.wrongAnswers.length > 0) {
-                if(result) result = 'correctPartial';
-                else result = 'incorrect';
-                if (aVars.spanText.length > 1 && !aVars.convertedToPartial) {
-                    $.each(aVars.spanText, function(i,v) {
-                        v.replace('correct', 'correctPartial');
+            if (isColorful(settings.themeName) && mrmr.answers.wrong.length > 0) {
+                result = (result)?'correctPartial':'incorrect';
+                if (mrmr.answers.spanText.length > 1 && !mrmr.convertedToPartial) {
+                    $.each(mrmr.answers.spanText, function(i,v) {
+                        v.replace('correct','correctPartial');
                     });
-                    aVars.convertedToPartial = true;
+                    mrmr.convertedToPartial = true;
                 }
             } else {
-                if(result) result = 'correct';
-                else result = 'incorrect';
+                result = (result)?'correct':'incorrect';
             }
             return ('<span class="' + result + '">' + text + '</span>');
         }
 
-        //=============================================================================
-        // Submission
-        //=============================================================================
         function checkSubmitReady() {
-            wk_mrmr.debugToggle && console.log('checking submission readiness...');
+            wk_mrmr.debugToggle && console.log('checking submit ready...');
             let submissionText = '';
-
-            // first pair: batch answer off AND >0 wrong answers logged
-            // second pair: all possible answers cleared OR number of answers == required number
-            if ((!settings.isBundled && aVars.wrongAnswers.length > 0)
-                || (aVars.possibleAnswers.length === 0 || aVars.answers.length >= aVars.reqNum)) {
-                aVars.submit = true;
+            if ((!settings.isBundled && mrmr.answers.wrong.length > 0) ||
+                (mrmr.answers.possible.length===0 || mrmr.answers.all.length >= mrmr.numRequired)) {
+                mrmr.submit.ready = true;
                 populateBar();
-            } else {aVars.submit = false;}
+            } else {mrmr.submit.ready = false;}
 
-            if (aVars.submit) {
-                // if at least one wrong, it's all wrong
-                if (aVars.wrongAnswers.length > 0) {
-                    submissionText = aVars.wrongAnswers[aVars.wrongAnswers.length-1];
-                } else {
-                    submissionText = aVars.rightAnswers[aVars.rightAnswers.length-1];
-                }
-                $('#user-response').val(submissionText).trigger('input');
-                wk_mrmr.debugToggle && console.log('submissionText: ' + submissionText);
-                triggerSubmission();
-            } else {
-                // for 'one at a time' answers, clears input field for next answer
-                $('#user-response').val('').trigger('input');
-                if (aVars.exceptions === 0 ) {
-                    showBar(); // if no reading or kana/non-kana exception
-                } else {triggerSubmission();}
+            switch (mrmr.submit.ready===true) {
+                case true:
+                    if (mrmr.answers.wrong.length > 0) {
+                        if (mrmr.accFail) submissionText = 'Answer(s) outside of tolerance bounds.';
+                        else submissionText = mrmr.answers.wrong[mrmr.answers.wrong.length-1];
+                    } else {
+                        submissionText = mrmr.answers.right[mrmr.answers.right.length-1];
+                    }
+                    $('#user-response').val(submissionText).trigger('input');
+                    mrmr.submit.formal();
+                    break;
+                case false:
+                    $('#user-response').val('').trigger('input');
+                    if (mrmr.exceptions===0) showBar();
+                    else mrmr.submit.formal();
+                    break;
             }
         }
 
-        // for wrong kanji reading, submits wrong reading for screen shake/exception toast
-        function submitException(text) {
-            wk_mrmr.debugToggle && console.log('submitting exception...');
-            let submissionText = text;
-            let answerField = $('#user-response');
-            if(aVars.wrongAnswers.length >0) { // however, if they got something dead wrong, submits that
-                submissionText = aVars.wrongAnswers[0];
-            }
-            answerField.val(submissionText).trigger('input');
-            triggerSubmission();
-        }
-
-        // formal answer submission to advance question
-        // includes compatibility handlers with Lightning Mode
+        //=============================================================================
+        // Submissions: Formal Submit to WK
+        //=============================================================================
         function triggerSubmission() {
-            wk_mrmr.debugToggle && console.log('submitting answer...');
-            let event = $.Event('keydown');
-            event.keyCode = 13; event.which = 13; event.key = 'Enter';
-
-            // skip lightning mode stuff if reading exception
-            if (aVars.exceptions > 0) {
-                // submit answer
-                $('#answer-form button').trigger('click');
-                aVars.exceptions = 0;
+            wk_mrmr.debugToggle && console.log('triggering submission...');
+            let button = $('#answer-form button');
+            if (mrmr.exceptions > 0) {
+                button.trigger('click');
+                mrmr.exceptions = 0;
             } else {
-                // override lightning mode (if installed) if 'Show Rest' selected and tries < number possible answers
-                lightClicked = false;
-                checkLightning();
-                if (lightning && lightMode && aVars.showRest && (aVars.tries<aVars.numPossible)) {
-                    wk_mrmr.debugToggle && console.log('click lightning');
-                    $('.icon-bolt').trigger('click');
-                    lightClicked = true;
+                if (lightning.installed) {
+                    checkLightning();
+                    if (lightning.on && settings.showRest && (mrmr.tries<mrmr.numPossible)) {
+                        lightning.bolt.trigger('click');
+                        wk_mrmr.debugToggle && console.log('click lightning!');
+                        lightning.clicked = true;
+                    }
                 }
+                $('#divCorrect').removeClass('hidden');
+                button.trigger('click');
 
-                // submit answer
-                $('#answer-form button').trigger('click');
 
-                // enable info bar if more possible answers than entered and showRest==true
-                if (aVars.showRest && aVars.possibleAnswers.length > 0) {
-                    if($('#divCorrect').hasClass('hidden')) showBar();
+                if (settings.showRest && mrmr.answers.possible.length>0) {
+                    if ($('#divCorrect').hasClass('hidden')) showBar();
                 }
             }
         }
 
-        //======================================
-        // Answer Bar
-        //======================================
+        //=============================================================================
+        // Answer Bar Underneath #user-response
+        //=============================================================================
         function showBar() {
-            wk_mrmr.debugToggle && console.log('showing answer bar...');
             let dc = $('#divCorrect');
-            dc.removeClass('hidden');
-            if (aVars.wrongAnswers.length > 0) {
-                if (dc.hasClass('correct')) {dc.removeClass('correct');}
-                dc.addClass('incorrect');
-            } else if (aVars.rightAnswers.length > 0) {
-                dc.addClass('correct');
-            }
+
+            dc.removeClass();
+            if (mrmr.answers.wrong.length>0) dc.addClass('incorrect');
+            else if (mrmr.answers.right.length>0) dc.addClass('correct');
+
             $('#lblCorrect').css('display','block');
         }
 
         function populateBar() {
-            wk_mrmr.debugToggle && console.log('populating answer bar...');
-            let barText;
+            wk_mrmr.debugToggle && console.log('populating bar...');
+            let barText = '';
             let divCorrect = $('#lblCorrect').parent();
-            if (aVars.wrongAnswers.length > 0 && !divCorrect.hasClass('incorrect')) {
+
+            if (mrmr.answers.wrong.length>0 && !divCorrect.hasClass('incorrect')) {
                 if (divCorrect.hasClass('correct')) {
                     divCorrect.removeClass('correct');
                     divCorrect.addClass('incorrect');
                 }
-            } else {
-                if (!divCorrect.hasClass('incorrect')) {
-                    if (divCorrect.hasClass('correct')) divCorrect.addClass('correct');
-                }
+            } else if (!divCorrect.hasClass('incorrect')){
+                if (!divCorrect.hasClass('correct')) divCorrect.addClass('correct');
             }
 
-            if (aVars.submit && aVars.showRest && aVars.possibleAnswers.length > 0) {
-                barText = $.merge(aVars.spanText,aVars.possibleAnswers);
-            } else {
-                barText = aVars.spanText;
-            }
-
-            wk_mrmr.debugToggle && console.log('barText: ' + barText);
+            if (mrmr.submit.ready && settings.showRest && mrmr.answers.possible.length>0) {
+                barText = $.merge(mrmr.answers.spanText,mrmr.answers.possible);
+            } else { barText = mrmr.answers.spanText; }
+            wk_mrmr.debugToggle && console.log('spanText: ' + mrmr.answers.spanText);
             barText = barText.join(', ');
-            if (aVars.submit) aVars.spanText = [];
             $('#lblCorrect').html(barText);
         }
     }
+
+
 
 })(window.wk_mrmr, window);
