@@ -13,180 +13,6 @@
 // ==/UserScript==
 
 /*****************************************************************
- * Multiple Readings/Meanings Retention
- *****************************************************************
- *
- *  One thing I felt was missing from WaniKani was structure for
- *  remembering multiple readings and meanings for kanji and vocab.
- *  I could get by the kanji with knowing one particular meaning
- *  (such as 'foot' for 足 whereas it can also mean 'sufficient')
- *  so when it came time to learn vocab using the latter meaning
- *  I found it difficult to remember.
- *
- *  Same went for multiple on'yomi or kun'yomi readings, since the
- *  mnemonics down the line typically consisted of "you learned these
- *  readings before, so you should be able to remember this one.
- *
- *  Anyhow, that's where this script comes in.
- *
- *  Meet MRMR: an enforcer of learning and retaining knowledge of
- *  multiple readings/meanings in order to progress through SRS levels.
- *
- *****************************************************************
- *  HOW TO USE:
- **************************************
- *
- * The most important thing while using this script is the semicolon.
- * That neglected little punctuation mark will serve as your 'enter'
- * key and is what allows this script to evaluate more than one
- * submission per question (provided they have more than one answer).
- *
- * Answers are evaluated using WaniKani's own answerChecker functions,
- * so they will be held to the same standard as normal regarding
- * accuracy.
- *
- * Once finished with a particular question (via getting them all right
- * or getting one wrong), depending on your settings a bar will display
- * under tha answer field to show both your answers as well as any
- * additional ones (should there be any).
- *
- * Default mode supports the native kanji 'wrong reading' error handling
- * and will prompt for the correct reading. It will also filter out
- * duplicate or blank entries and have you redo those entries before
- * formal submission through evaluation. You can turn off these safety
- * nets in the settings by turning on 'Strict Mode.'
- *
- * If you wish to skip entering multiple answers per question, simply
- * press the enter button to submit normally. There's no need to toggle
- * this script on and off.
- *
- * This script plays well with Lightning Mode! If your lightning mode
- * is turned on, it will work to advance the question if all possible
- * answers are correct, or temporarily turn off to allow displaying of
- * remaining answers beyond your set requirements (should you wish)
- * before turning back on once the next question loads.
- *
- * See the end of this README for currently known compatible and
- * incompatible user scripts.
- *
- *****************************************************************
- *  CUSTOMIZATION:
- **************************************
- *
- * This script comes with a fair amount of customization options,
- * accessible from your WaniKani dashboard by clicking on Account
- * in the upper left, then Settings (under the Scripts category),
- * then on this script's name.
- *
- * ***NOTE: WANIKANI OPEN FRAMEWORK IS REQUIRED FOR THIS SCRIPT***
- *
- * Here's a run-down of the settings you'll find there:
- * Two tabs: Substance, Style
- *
- * =======================
- * SUBSTANCE
- * =======================
- * Answer Requirements
- *    Number Required:
- *       - Only 1, Show the Rest
- *              Only enforces submitting one answer, so not much
- *              change, however if the item has more than one
- *              right answer, it will display them before moving on
- *       - All Possible Answers
- *              With this setting, you must get every possible
- *              answer correct, otherwise the whole question is
- *              marked as 'wrong'
- *       - Specific Number
- *              Flat requirement for all items. If an item has fewer
- *              answers than defined here, you will need to get them
- *              all correct
- *       - Base On SRS Level
- *              This setting allows you to set a different specific
- *              number requirement for each SRS level
- *
- *    Answer Format:
- *       - All In One Go (semicolon separated)
- *       - One At A Time
- *
- *    Start With Lessons:
- *       - When checked, you'll have to answer every possible reading/
- *         meaning before moving on. (recommended since here it won't
- *         ding your SRS level should you get any wrong)
- *
- *    Disallow Close:
- *       - When checked, correct answers that aren't fully accurate are
- *         refused, allowing you to re-enter them. This is independent
- *         of 'Strict Mode,' since typos happen.
- *
- *    Strict Mode:
- *       - When checked, all leniency is gone. No redo's for entering
- *         the wrong kanji reading, for submitting the same answer
- *         more than once, or submitting blank answers. If you mess up,
- *         it's wrong.
- *
- * Particulars
- *    Show Total Required:
- *       - When checked, the number of answers you need to supply will
- *         display next to the question type above the answer field. The
- *         number will change as you enter answers to reflect how many
- *         are left. This number is dependent on your settings.
- *
- *    Show Remaining Answers:
- *       - During a batch (all at once) submission, if your required
- *         number of answers is less than the item's total possible,
- *         the remaining answers will populate after your submitted
- *         ones underneath the answer field following your final
- *         submission (on both wrong and right questions)
- *
- *    Max Required Answers:
- *      - Only enabled if you have "Specific Number" selected in the
- *        "Number Required" field above. Caps the number of answers
- *        you need to submit for each question.
- *
- *    SRS Level Requirements:
- *      - Like Max Required, but here you can specify a different max
- *        for each SRS Level individually. Only enabled when you
- *        have "Base On SRS Level" selected in the "Number Required"
- *        field above.
- *
- * =======================
- * STYLE
- * =======================
- * Here lies your color customization
- *
- * Theme:
- *    - There are a number of pre-defined themes available to choose
- *      from, including options for those with colorblindness. Editing
- *      any color fields from one of the named themes changes you to
- *      a "Custom" theme (your settings will save).
- *
- * Background Correct:
- *    - Background color of the submitted answers bar should your
- *      answer(s) be correct.
- *
- * Background Incorrect:
- *    - Background color of the submitted answers bar should your
- *      answer(s) be incorrect.
- *
- * Default Text:
- *    - Text color of any leftover possible answers beyond your
- *      required number of submissions.
- *
- * Correct (on Correct BG):
- *    - Text color for correct submissions when all submitted
- *      answers are correct (displayed on 'Background Correct').
- *
- * Correct (on Incorrect BG):
- *    - Text color for correct submissions when one or
- *      more submitted answers are incorrect (displayed
- *      on 'Background Incorrect').
- *
- * Incorrect:
- *    - Text color for incorrect submissions (the background color
- *      when this text is used will always be "Background Incorrect").
- */
-
-/*****************************************************************
  * CHANGELOG
  *****************************************************************
  *
@@ -270,9 +96,9 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             guru:           '2',
             master:         '3',
             enlightened:    'all',
-            minRequire:     2,
+            minRequire:     '2',
             showRest:       true,
-            isBundled:      true,
+            isBundled:      false,
             mrmrLessons:    true,
             disallowClose:  true,
             tolerance:      0,
@@ -326,7 +152,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     // checks if theme 'is colorful' (i.e. background changes color when correct/incorrect
     // returns boolean
     function isColorful(theme) {
-        return theme.match(/(colorful|custom)/i);
+        return /(colorful|custom)/i.test(theme);
     }
 
 
@@ -362,14 +188,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                                                 'oneEntry':   'All In One Go (semicolon separated)',
                                                 'multiEntry': 'One At A Time'
                                             },
-                                            on_change:  config_settings
-                                        },
-                                        mrmrLessons: {type:'checkbox', label:'Start With Lessons', hover_tip: 'If a lesson item has more than one answer,\nrequire them all to progress.',
-                                            default: settings.mrmrLessons
-                                        },
-                                        disallowClose: {type:'checkbox', label:'Refuse \'Close\' Answers', hover_tip: 'Refuses correct, but inaccurate, answers\nand allows you to re-submit them.',
-                                            default: settings.disallowClose,
-                                            on_change:  config_settings
+                                            on_change: config_settings
                                         },
                                         tolerance: {type:'dropdown', label:'Accuracy Tolerance', hover_tip: 'Control how lenient you want WK to be with accuracy.',
                                             default: settings.tolerance,
@@ -378,6 +197,13 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                                                 1: 'Moderate',
                                                 2: 'Strict'
                                             }
+                                        },
+                                        disallowClose: {type:'checkbox', label:'Refuse \'Close\' Answers', hover_tip: 'Refuses correct, but inaccurate, answers\nand allows you to re-submit them.',
+                                            default: settings.disallowClose
+                                            // on_change:  config_settings
+                                        },
+                                        mrmrLessons: {type:'checkbox', label:'Start With Lessons', hover_tip: 'If a lesson item has more than one answer,\nrequire them all to progress.',
+                                            default: settings.mrmrLessons
                                         },
                                         strict: {type:'checkbox', label:'Strict Mode', hover_tip: 'Removes safety nets for on\'yomi/kun\'yomi reading\nexceptions, and blank or duplicate submissions.',
                                             default: settings.strict
@@ -392,8 +218,10 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                                         showRest: {type: 'checkbox', label: 'Show Remaining Answers', hover_tip: 'Show remaining correct answers\nafter submitting minimum guesses.\n(overrides Lightning Mode if more\nanswers than submissions)',
                                             default: settings.showRest
                                         },
-                                        minRequire: {type:'number', label: 'Max Required Answers', hover_tip: 'How many of an items meanings/readings\nyou need to get correct.',
-                                            default: settings.minRequire
+                                        minRequire: {type:'dropdown', label: 'Max Required Answers', hover_tip: 'How many of an items meanings/readings\nyou need to get correct.',
+                                            default: settings.minRequire,
+                                            content: {'1':'1','2':'2','3':'3','4':'4','5':'5','all':'All'},
+                                            on_change: config_settings
                                         },
                                         grp_srsReq: {type:'group', label:  'SRS Level Requirements', hover_tip: 'Set number of answers required\nfor each SRS level.',
                                             content: {
@@ -462,40 +290,87 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
     // runs on change to answer requirements or answer format
     function config_settings() {
-        let showOnly    = 'Only 1 Answer, Show the Rest';
-        let requireAll  = 'All Possible Answers';
-        let minRequire  = 'Specific Number';
-        let srsBased    = 'Base On SRS Level';
+        let showRest    = $('#mrmr_showRest');
+        let answerFormat= $('#mrmr_answerFormat');
+        let minRequire  = $('#mrmr_minRequire');
+        let srsReq      = $('#mrmr_grp_srsReq');
+        let _this = [];
         settings.isBundled = isAllAtOnce();
 
-        // enable/disable fields based on changes
-        switch ($('#mrmr_requirements').val()) {
-            case showOnly:
-            case requireAll:
-                $('#mrmr_minRequire').closest('.row').css('display', 'none');
-                $('#mrmr_grp_srsReq').css('display','none');
-                break;
-            case minRequire:
-                $('#mrmr_minRequire').closest('.row').css('display', 'block');
-                $('#mrmr_grp_srsReq').css('display','none');
-                break;
-            case srsBased:
-                $('#mrmr_minRequire').closest('.row').css('display', 'none');
-                $('#mrmr_grp_srsReq').css('display','block');
-                break;
+        // allows setup on dialog launch as well as on_change
+        if (this) _this = [$(this)];
+        else _this = [$('#mrmr_requirements'), $('#mrmr_disallowClose'), minRequire, answerFormat];
+
+        for (let i in _this) {
+            switch (_this[i].attr('id')) {
+                // case ('mrmr_disallowClose'):
+                //     if($(this).prop('checked')) {
+                //         $('#mrmr_tolerance').closest('.row').css('display', 'block');
+                //     } else {
+                //         $('#mrmr_tolerance').closest('.row').css('display', 'none');
+                //     }
+                //     break;
+                case ('mrmr_requirements'):
+                    switch (_this[i].val()) {
+                        case 'Only 1 Answer, Show the Rest':
+                            disable([showRest,answerFormat]);
+                            showRest.attr('checked','checked');
+                            // showRest.attr('disabled','disabled');
+                            answerFormat.val('One At A Time');
+                            // answerFormat.attr('disabled','disabled');
+                            minRequire.closest('.row').css('display', 'none');
+                            srsReq.css('display','none');
+                            break;
+                        case 'All Possible Answers':
+                            minRequire.closest('.row').css('display', 'none');
+                            srsReq.css('display','none');
+                            removeDisabled([showRest,answerFormat]);
+                            break;
+                        case 'Specific Number':
+                            minRequire.closest('.row').css('display', 'block');
+                            srsReq.css('display','none');
+                            removeDisabled([showRest,answerFormat]);
+                            if(minRequire.val() === '1') {
+                                answerFormat.val('One At A Time');
+                                disable([answerFormat]);
+                            }
+                            break;
+                        case 'Base On SRS Level':
+                            minRequire.closest('.row').css('display', 'none');
+                            srsReq.css('display','block');
+                            removeDisabled([showRest,answerFormat]);
+                            break;
+                    }
+                    break;
+                case ('mrmr_minRequire'):
+                    if(minRequire.val() === '1') {
+                        answerFormat.val('One At A Time');
+                        disable([answerFormat]);
+                    }
+                    break;
+                case ('mrmr_answerFormat'):
+                    settings.isBundled = isAllAtOnce();
+                    break;
+            }
         }
 
-        // hide/show Correct (Incorrect Background) option
+        // hide/show Correct (Incorrect Background) option on load
         if(settings.isColorful) {
             $('#mrmr_incorrect').closest('.row').css('display', 'block');
         } else {
             $('#mrmr_incorrect').closest('.row').css('display', 'none');
         }
 
-        if(settings.disallowClose) {
-            $('#mrmr_tolerance').closest('.row').css('display', 'block');
-        } else {
-            $('#mrmr_tolerance').closest('.row').css('display', 'none');
+        function removeDisabled(items) {
+            $.each(items, function(i,v){
+                v.removeAttr('disabled');
+            });
+        }
+
+        function disable(items) {
+            $.each(items, function(k,v) {
+                v.attr('disabled','disabled');
+            })
         }
     }
 
@@ -508,8 +383,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     // returns boolean
     function isAllAtOnce() {
         let id = $('#mrmr_answerFormat').val();
-        // let regex = new RegExp(/(all)/i);
-        return id.match(/(all)/i);
+        return /all/i.test(id);
     }
 
     //=============================================================================
@@ -561,20 +435,20 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     // update/set colors for selected theme
     function setColors(theme) {
         let themeName = JSON.stringify(theme.themeName);
-        settings.isColorful = isColorful(theme.themeName);
-        settings.isBundled = isAllAtOnce();
+        let incorrect = $('#mrmr_incorrect');
+        settings.isColorful = isColorful(themeName);
 
         $('#mrmr_bgCorrectColor').val(theme.bgCorrectColor).change();
         $('#mrmr_bgIncorrectColor').val(theme.bgIncorrectColor).change();
         $('#mrmr_defaultColor').val(theme.defaultColor).change();
         $('#mrmr_incorrectColor').val(theme.incorrectColor).change();
         $('#mrmr_correct').val(theme.correct).change();
-        $('#mrmr_incorrect').val(theme.incorrect).change();
+        incorrect.val(theme.incorrect).change();
 
         if (settings.isColorful) {
-            $('#mrmr_incorrect').closest('.row').css('display', 'block');
+            incorrect.closest('.row').css('display', 'block');
         } else {
-            $('#mrmr_incorrect').closest('.row').css('display', 'none');
+            incorrect.closest('.row').css('display', 'none');
         }
         isThemeChange = false;
         base.theme = theme;
@@ -661,6 +535,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     function reviewMain() {
         let settings = window.wkof.settings.mrmr;
         if (!settings.mrmrLessons && window.location.pathname.match(/(lesson)/i)) return;
+        let alert = '';
 
         var lightning = {
             installed: false,
@@ -699,7 +574,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                     '    <span id="lblCorrect" style="display:none;" disabled></span>' +
                     '</div>');
             }
-            if (settings.showNumPossible) {
+            if (mrmr.showRemaining && settings.showNumPossible) {
                 $('#question-type h1').append(
                     '<span id="remaining"></span>'
                 );
@@ -729,8 +604,8 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         //======================================
         // Mutation Observer
         //======================================
-        const targetNode = document.getElementById('character');
-        const oSettings = { attributes: true, childList: true, subtree: true };
+        const target = document.getElementById('character');
+        const options = { attributes: true, childList: true, subtree: true };
         const callback = function(mutationsList, observer) {
             $('#lblCorrect').text('');
             $('#divCorrect').addClass('hidden');
@@ -745,7 +620,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         };
 
         const observer = new MutationObserver(callback);
-        observer.observe(targetNode, oSettings);
+        observer.observe(target, options);
 
         //======================================
         // Key-up Listener
@@ -756,14 +631,18 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                 let key = n.key || n.code || n.keyCode;
                 if (key===';'||key==='Semicolon'||key===186) {
                     mrmr.tries++;
-                    if (settings.showNumPossible) updateRemaining();
+                    if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
                     if (!settings.isBundled || mrmr.tries >= mrmr.numRequired) {
                         mrmr.eval.answer();
+                    }
+                    if (settings.isBundled) {
+                        let text = t.val();
+                        t.val(text + ' ').trigger('input');
                     }
                 } else
                 if ((key==='Backspace'||key===8) && settings.isBundled) {
                     mrmr.tries = (t.val().split(';').length-1);
-                    updateRemaining();
+                    if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
                 }
             }
         });
@@ -783,10 +662,12 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                 //answer arrays
                 answers: {
                     possible: [],
+                    removed: [],
                     pulled: [],
                     right: [],
                     wrong: [],
                     all: [],
+                    current: '',
                     spanText: [],
                 },
 
@@ -852,6 +733,16 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             mrmr.numPossible = mrmr.answers.possible.length;
             mrmr.numRequired = getRequirements(mrmr.numPossible);
 
+            mrmr.showRemaining = (function(){
+                switch(settings.requirements) {
+                    case 'showOnly':
+                        return false;
+                    case 'minRequire':
+                        return (settings.minRequire !== '1' && settings.minRequire !== 1);
+                    default:
+                        return true;
+                }
+            }());
             installHTML();
             $('#divCorrect').removeClass();
             $('#divCorrect').addClass('hidden');
@@ -894,24 +785,31 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         function removeCloseAnswers(answers) {
             wk_mrmr.debugToggle && console.log('removing close answers...');
             let similar = false;
-            let kanaFlag = false;
 
             for (let i in answers) {
+                let aKanaFlag = false;
+                let bKanaFlag = false;
                 let a = answers[i];
                 answers.splice(i,1);
-                for (let j = parseInt(i); j<answers.length; j++) {
+                for (let j = i; j <answers.length;j++) {
                     let b = answers[j];
                     if (mrmr.qType==='reading'&&(wanakana.toRomaji(a)===wanakana.toRomaji(b))) {
                         let t = wanakana.toRomaji(b,{upcaseKatakana:true});
-                        kanaFlag = (/[A-Z]/.test(t));
+                        bKanaFlag = (/[A-Z]/.test(t));
+                        aKanaFlag = !bKanaFlag;
                     }
-                    if (!kanaFlag) similar = evalSimilarity(a,b);
-                    if (similar || kanaFlag) {
+                    if (!bKanaFlag) similar = evalSimilarity(b,a);
+                    wk_mrmr.debugToggle && console.log(a + ' <-> ' + b + ': ' + similar);
+                    if (similar || bKanaFlag) {
+                        mrmr.answers.removed.push(b);
                         answers.splice(j,1);
                     }
                 }
-                if (!kanaFlag) answers.splice(i,0,a);
+                if (!aKanaFlag) answers.splice(i,0,a);
+                else mrmr.answers.removed.push(answers[i]);
             }
+            wk_mrmr.debugToggle && console.log(answers);
+            wk_mrmr.debugToggle && console.log(mrmr.answers.removed);
         }
 
         //=============================================================================
@@ -938,21 +836,29 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
             for (let i in text) {
                 result = evalAnswer(text[i]);
+                wk_mrmr.debugToggle && console.log(text[i] + ' <-> ' + mrmr.answers.current);
                 if (!result.passed && (result.exception && !settings.strict)) {
                     mrmr.submit.exception(text[i]);
                     return;
-                } else if (result.passed && (!result.accurate && settings.disallowClose)) {
+                } else if ((result.passed && (!result.accurate && settings.disallowClose)) ||
+                            (result.dupe && !settings.strict)) {
                     mrmr.tries--;
                     text.splice(i,1);
                     accurate = false;
                 }
-                if ((result.passed && accurate) || !result.passed && result.accFail) {
-                    spanText = wrapText(text[i],result.passed);
+                if (!(accurate===false && settings.disallowClose)) {
+                    spanText = (mrmr.answers.current.length>0)?mrmr.answers.current:text[i];
+                    spanText = wrapText(spanText,result.passed);
                     mrmr.answers.spanText.push(spanText);
                 }
+                mrmr.answers.current = '';
             }
 
-            if (text.length < mrmr.numRequired && !accurate) {mrmr.submit.refuse(text,1);return;}
+            if (text.length < mrmr.numRequired && !accurate) {
+                if (result.dupe) mrmr.submit.refuse(text,2);
+                else mrmr.submit.refuse(text,1);
+                return;
+            }
             if (mrmr.answers.right.length < mrmr.numRequired &&
                 $('#divCorrect').hasClass('hidden')){
                 showBar();
@@ -968,47 +874,58 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         function evalAnswer(text) {
             wk_mrmr.debugToggle && console.log('evaluating single answer...');
             let similar = false;
-            let result = {};
-            let type = mrmr.qType;
+            let match   = false;
+            let result  = {};
+            let type    = mrmr.qType;
 
-            if (mrmr.answers.pulled.length > 0) {
-                for (let i in mrmr.answers.pulled) {
-                    similar = mrmr.eval.similarity(text,mrmr.answers.pulled[i]);
-                    if (similar) break;
-                }
-            }
+            // if (mrmr.answers.pulled.length > 0) {
+            //     let regex = new RegExp ('^('+mrmr.answers.pulled.join("|")+')$',"mi");
+            //     similar = regex.test(text); // quick exact dupe check
+            //     wk_mrmr.debugToggle && console.log('dupe check: ' + similar);
+            //     if (type === 'meaning' && !similar &&
+            //         ((mrmr.answers.pulled.length + mrmr.answers.possible.length)< mrmr.item.en.length)){
+            //         let regex = new RegExp ('^('+mrmr.item.en.join("|")+')$',"mi");
+            //         match = regex.test(text); // quick exact match check
+            //     }
+            // }
 
-            if (similar) {
-                result = answerChecker.evaluate(type, "nice tey buckaroo can't fool me");
-                if (settings.strict || settings.isBundled) {
-                    mrmr.answers.wrong.push("diplicate answer entered");
-                    mrmr.answers.all.push(text);
-                }
-            } else result = answerChecker.evaluate(type,text);
-
+            result = answerChecker.evaluate(type,text, true /*indicates from script*/);
             switch (result.passed===true) {
                 case false:
                     result.exception = (!result.exception)?mrmr.eval.exception(text):true;
                     if (!settings.strict &&
                         ((similar && !settings.isBundled) || result.exception)) {
                         mrmr.tries--;
-                        updateRemaining();
+                        if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
                         if (result.exception) {mrmr.exceptions++;}
                         return result;
                     }
                     break;
                 case true:
-                    if (!result.accurate && settings.disallowClose) {
+                    if (!result.accurate && settings.disallowClose && !result.dupe) {
                         if (mrmr.accFail) result.passed = false;
                         else return result;
+                    } else if (result.dupe && !settings.strict) {
                     }
                     break;
             }
 
+            if (result.dupe) {
+                result = answerChecker.evaluate(type, "nice try buckaroo can't fool me");
+                result.dupe = true;
+                if (settings.strict || settings.isBundled) {
+                    let dupeText = '';
+                    if ($('#user-response').attr('lang')==='ja') dupeText='じゅうふくな　かいとうが　にゅうりゅおくされました';
+                    else dupeText = 'Duplicate answer entered';
+                    mrmr.answers.wrong.push(dupeText);
+                    mrmr.answers.all.push(text);
+                }
+            }
+
             mrmr.answers.all.push(text);
             if (result.passed) mrmr.answers.right.push(text);
-            else mrmr.answers.wrong.push(text);
-
+            else if (!result.dupe) mrmr.answers.wrong.push(text);
+            wk_mrmr.debugToggle && console.log(mrmr);
             return result;
         }
 
@@ -1016,33 +933,92 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         // Modified Answer Checker
         //======================================
         answerChecker.oldEval = answerChecker.evaluate;
-        answerChecker.evaluate = function(e,t) {
+        answerChecker.evaluate = function(e,t, flag = false) {
             wk_mrmr.debugToggle && console.log('running modified evaluate...');
             let result = answerChecker.oldEval(e,t);
-            result.accFail = false;
-            if (result.passed) {
-                for (let i in mrmr.answers.possible) {
-                    let h,p;
-                    let v = mrmr.answers.possible[i];
-                    v = answerChecker.stringFormat(v);
+            if (flag) {
+                if (result.passed && !result.accurate && settings.strict) return result;
+                let match  = true;
+                result.accFail = false;
+                result.dupe = false;
+                if (result.passed) {
+                    let answer = '';
+                    if (result.accurate) {
+                        let dupe  = new RegExp('^('+mrmr.answers.pulled.join("|")+')$',"mi");
+                        dupe = dupe.test(t);
+                        if (!dupe) {
+                            let regex = new RegExp('^('+mrmr.answers.possible.join("|")+')$',"mi");
+                            match = regex.test(t);
+                            if (!match) {
+                                let lcAnswers = mrmr.answers.removed.map(e=>e.toLowerCase());
+                                let tIndex = lcAnswers.indexOf(t.toLowerCase());
+                                answer = mrmr.answers.removed[tIndex];
+                                mrmr.answers.removed.splice(tIndex,1);
+                            } else {
+                                let lcAnswers = mrmr.answers.possible.map(e=>e.toLowerCase());
+                                let tIndex = lcAnswers.indexOf(t.toLowerCase());
+                                answer = mrmr.answers.possible[tIndex];
+                                mrmr.answers.possible.splice(tIndex,1);
+                            }
+                        } else {
+                            return result.dupe = true, result;
+                        }
+                        mrmr.answers.pulled.push(answer);
+                    } else {
+                        let closest = -1, answer = '';
+                        let dt, ld, tol, userTol;
 
-                    if ((h=levenshteinDistance(v,t))<=(p=answerChecker.distanceTolerance(v))) {
-                        result.accuracy = h;
-                        result.tolerance = p;
-                        let tol = (settings.disallowClose)?parseInt(p):0;
-                        let userTol = settings.tolerance;
-                        tol = ((p-userTol)<0)?0:p-userTol;
-                        if (h>tol) {
+                        let answers = (e==='meaning')?mrmr.item.en.slice():mrmr.item.kana.slice();
+                        for (let i in answers) {
+                            let v = answerChecker.stringFormat(answers[i]);
+                            t = answerChecker.stringFormat(t);
+                            if ((ld=levenshteinDistance(v,t))<=(dt=answerChecker.distanceTolerance(v))) {
+                                if (closest < 0) closest = ld;
+                                else closest = Math.min(closest,ld);
+                                answer = answers[i];
+                                wk_mrmr.debugToggle && console.log(closest + '  ' + answer);
+                                if (closest === 1) break;
+                            }
+                        }
+
+                        dt = answerChecker.distanceTolerance(answer);
+                        ld = levenshteinDistance(answer.toLowerCase(),t);
+                        tol = parseInt(dt);
+                        userTol = settings.tolerance;
+                        tol = ((tol-userTol)<0)?0:tol-userTol;
+                        wk_mrmr.debugToggle && console.log('ld: ' + ld + '  tol: ' + tol);
+                        if (ld>tol) {
                             mrmr.accFail = true;
                             result.accFail = true;
-                        } else if (result.accurate || !settings.disallowClose) {
-                            mrmr.answers.pulled.push(mrmr.answers.possible[i]);
-                            mrmr.answers.possible.splice(i,1);
+                        } else {
+                            let index = mrmr.answers.removed.indexOf(answer);
+                            let dupe  = mrmr.answers.pulled.indexOf(answer);
+                            if (index >= 0 && !settings.disallowClose){
+                                mrmr.answers.removed.splice(index,1);
+                                wk_mrmr.debugToggle && console.log('removed');
+                                for (let i in mrmr.answers.possible) {
+                                    if (evalSimilarity(mrmr.answers.possible[i],answer)) {
+                                        mrmr.answers.possible.splice(i,1);
+                                        break;
+                                    }
+                                }
+                            } else if (dupe < 0 && !settings.disallowClose) {
+                                index = mrmr.answers.possible.indexOf(answer);
+                                mrmr.answers.possible.splice(index,1);
+                                wk_mrmr.debugToggle && console.log('possible');
+                            } else {
+                                return result.dupe = true, result;
+                            }
+                            mrmr.answers.pulled.push(answer);
+
                         }
-                        break;
+                        wk_mrmr.debugToggle && console.log(answer);
+                        wk_mrmr.debugToggle && console.log(mrmr.answers.pulled);
                     }
+                    mrmr.answers.current = answer;
                 }
             }
+
             wk_mrmr.debugToggle && console.log(result);
             return result;
         };
@@ -1052,10 +1028,18 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         //======================================
         function evalSimilarity(entry,original) {
             wk_mrmr.debugToggle && console.log('checking similarity...');
-            let e = answerChecker.stringFormat(entry);
-            let o = answerChecker.stringFormat(original);
-            wk_mrmr.debugToggle && console.log(e + ', ' + o);
-            return (levenshteinDistance(e,o)<=answerChecker.distanceTolerance(e));
+            let l,s;
+            // use longer string when getting distanceTolerance
+            if (entry.length <= original.length) {
+                s = entry.toLowerCase();
+                l = original.toLowerCase();
+            } else {
+                s = original.toLowerCase();
+                l = entry.toLowerCase();
+            }
+            wk_mrmr.debugToggle && console.log('s: ' + s + '   l: ' + l);
+            wk_mrmr.debugToggle && console.log(levenshteinDistance(s,l) + ' <-> ' + answerChecker.distanceTolerance(l));
+            return (levenshteinDistance(s,l)<=answerChecker.distanceTolerance(l));
         }
 
         function checkException(text) {
@@ -1070,12 +1054,24 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             wk_mrmr.debugToggle && console.log('refusing submission...');
             let urText = text;
             let lblText = '';
-            updateRemaining();
+            if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
 
             if (settings.isBundled || mrmr.answers.spanText.length===0) {
+                mrmr.answers.possible = mrmr.answers.possible.concat(mrmr.answers.pulled);
+                if (mrmr.numPossible>1) {
+                    mrmr.answers.removed.length = 0;
+                    mrmr.answers.possible = removeCloseAnswers(mrmr.answers.possible);
+                }
+                mrmr.answers.right.length = 0;
+                mrmr.answers.all.length = 0;
+                mrmr.answers.pulled.length = 0;
+                mrmr.answers.spanText.length = 0;
                 urText = urText.join('; ');
-                if (type===0) lblText = 'Blank answer(s) submitted, please try again.';
-                else lblText = 'Not quite accurate... try again.';
+                switch (type) {
+                    case 0: lblText = 'Blank answer(s) submitted, please try again.'; break;
+                    case 1: lblText = 'Not quite accurate... try again.'; break;
+                    case 2: lblText = 'Duplicate answer entered.'; break;
+                }
             } else {
                 lblText = mrmr.answers.spanText.join(', ');
             }
@@ -1084,6 +1080,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             $('#user-response').val(urText).trigger('input');
             $('#lblCorrect').html(lblText);
             showBar();
+            wk_mrmr.debugToggle && console.log(mrmr);
         }
 
         function submitException(text) {
@@ -1116,7 +1113,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             wk_mrmr.debugToggle && console.log('checking submit ready...');
             let submissionText = '';
             if ((!settings.isBundled && mrmr.answers.wrong.length > 0) ||
-                (mrmr.answers.possible.length===0 || mrmr.answers.all.length >= mrmr.numRequired)) {
+                (mrmr.answers.possible.length===0 || mrmr.answers.pulled.length >= mrmr.numRequired)) {
                 mrmr.submit.ready = true;
                 populateBar();
             } else {mrmr.submit.ready = false;}
