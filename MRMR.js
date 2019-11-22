@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         WaniKani Multiple Readings/Meanings Retention
 // @namespace    ngreyson
+// @author       Greyson N
 // @version      1.0
 // @description  Require more than one Answer entry for kanji/vocab with multiple correct answers
 // @require      https://unpkg.com/wanakana@4.0.2/umd/wanakana.min.js
-// @include      https://www.wanikani.com/review/session
-// @include      https://www.wanikani.com/
-// @include      https://www.wanikani.com/dashboard
-// @include      https://www.wanikani.com/lesson/session*
+// @include      /^https://(www|preview).wanikani.com/review/session/
+// @include      /^https://(www|preview).wanikani.com/(dashboard)?$/
+// @include      /^https://(www|preview).wanikani.com/lesson/session/
 // @license      MIT; http://opensource.org/licenses/MIT
 // @grant        none
 // ==/UserScript==
@@ -200,7 +200,6 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                                         },
                                         disallowClose: {type:'checkbox', label:'Refuse \'Close\' Answers', hover_tip: 'Refuses correct, but inaccurate, answers\nand allows you to re-submit them.',
                                             default: settings.disallowClose
-                                            // on_change:  config_settings
                                         },
                                         mrmrLessons: {type:'checkbox', label:'Start With Lessons', hover_tip: 'If a lesson item has more than one answer,\nrequire them all to progress.',
                                             default: settings.mrmrLessons
@@ -299,25 +298,16 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
 
         // allows setup on dialog launch as well as on_change
         if (this) _this = [$(this)];
-        else _this = [$('#mrmr_requirements'), $('#mrmr_disallowClose'), minRequire, answerFormat];
+        else _this = [$('#mrmr_requirements'), minRequire, answerFormat];
 
         for (let i in _this) {
             switch (_this[i].attr('id')) {
-                // case ('mrmr_disallowClose'):
-                //     if($(this).prop('checked')) {
-                //         $('#mrmr_tolerance').closest('.row').css('display', 'block');
-                //     } else {
-                //         $('#mrmr_tolerance').closest('.row').css('display', 'none');
-                //     }
-                //     break;
                 case ('mrmr_requirements'):
                     switch (_this[i].val()) {
                         case 'Only 1 Answer, Show the Rest':
                             disable([showRest,answerFormat]);
                             showRest.attr('checked','checked');
-                            // showRest.attr('disabled','disabled');
                             answerFormat.val('One At A Time');
-                            // answerFormat.attr('disabled','disabled');
                             minRequire.closest('.row').css('display', 'none');
                             srsReq.css('display','none');
                             break;
@@ -477,54 +467,86 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     // Add CSS for Answer Bar
     //=============================================================================
     function install_css() {
-        let mrmr_css = ('#divCorrect.hidden {' +
-            '  display: none !important;' +
-            '}' +
-            '#divCorrect {' +
-            '  width: 100%; !important;' +
-            '  display:table; !important;' +
-            '}' +
-            '#lblCorrect {' +
-            '  height: ' + $('#answer-form input[type=text]').css('height') + ' !important;' +
-            '  min-height: ' + $('#answer-form input[type=text]').css('height') + ' !important;' +
-            '  display:table-cell !important;' +
-            '  vertical-align:middle; !important;' +
-            '  font-family: ' + $('#user-response').css('font-family') + ';' +
-            '  font-size: ' + $('#user-response').css('font-size') + ';' +
-            '  text-align: center !important;' +
-            '  color ' + settings.defaultColor + ' !important;' +
-            '  -webkit-text-fill-color: ' + settings.defaultColor + ' !important;' +
-            '  text-shadow: ' + ($(window).width() < 767 ? '1px 1px 0 rgba(0,0,0,0.2);' : '2px 2px 0 rgba(0,0,0,0.2);') + ' !important;' +
-            '  -webkit-transition: background-color 0.1s ease-in; !important;' +
-            '  -moz-transition: background-color 0.1s ease-in; !important;' +
-            '  -o-transition: background-color 0.1s ease-in; !important;' +
-            '  transition: background-color 0.1s ease-in; !important;' +
-            '  opacity: 1 !important;' +
-            '}' +
-            '#divCorrect.correct {' +
-            ' background-color: ' + settings.bgCorrectColor + ' !important;' +
-            ' color: ' + settings.defaultColor + ' !important;' +
-            '}' +
-            '#divCorrect.incorrect {' +
-            ' background-color: ' + settings.bgIncorrectColor  + '!important;' +
-            ' color: ' + settings.defaultColor + ' !important;' +
-            '}' +
-            'span .correct {' +
-            ' color: ' + settings.correct + '!important;' +
-            ' -webkit-text-fill-color: ' + settings.correct + '!important;' +
-            '}' +
-            'span .correctPartial {' +
-            ' color: ' + settings.incorrect + '!important;' +
-            ' -webkit-text-fill-color: ' + settings.incorrect + '!important;' +
-            '}' +
-            'span .incorrect {' +
-            ' color: ' + settings.incorrectColor + '!important;' +
-            ' -webkit-text-fill-color: ' + settings.incorrectColor + '!important;' +
-            '}' +
-            '#ansText {' +
-            ' text-shadow: none !important;' +
-            '}');
-        $('head').append('<style>'+mrmr_css+'</style>');
+        const style = document.createElement('style');
+        style.setAttribute('id','mrmr-style');
+        style.innerHTML = `
+           #divCorrect.hidden {
+             display: none !important;
+           }
+           #divCorrect {
+             width: 100%; !important;
+             display:table; !important;
+           }
+           #lblCorrect {
+             height:  ${$('#answer-form input[type=text]').css('height')}  !important;
+             min-height:  ${$('#answer-form input[type=text]').css('height')}  !important;
+             display:table-cell !important;
+             vertical-align:middle; !important;
+             font-family:  ${$('#user-response').css('font-family')} ;
+             font-size:  ${$('#user-response').css('font-size')} ;
+             text-align: center !important;
+             color  ${settings.defaultColor}  !important;
+             -webkit-text-fill-color:  ${settings.defaultColor}  !important;
+             text-shadow:  ${($(window).width() < 767 ? '1px 1px 0 rgba(0,0,0,0.2);' : '2px 2px 0 rgba(0,0,0,0.2);')}  !important;
+             -webkit-transition: background-color 0.1s ease-in; !important;
+             -moz-transition: background-color 0.1s ease-in; !important;
+             -o-transition: background-color 0.1s ease-in; !important;
+             transition: background-color 0.1s ease-in; !important;
+             opacity: 1 !important;
+           }
+           #divCorrect.correct {
+             background-color:  ${settings.bgCorrectColor } !important;
+             color:  ${settings.defaultColor}  !important;
+           }
+           #divCorrect.incorrect {
+             background-color:  ${settings.bgIncorrectColor}  !important;
+             color:  ${settings.defaultColor}  !important;
+           }
+           span .correct {
+             color:  ${settings.correct} !important;
+             -webkit-text-fill-color:  ${settings.correct} !important;
+           }
+           span .correctPartial {
+             color:  settings.incorrect !important;
+             -webkit-text-fill-color:  ${settings.incorrect} !important;
+           }
+           span .incorrect {
+             color:  ${settings.incorrectColor} !important;
+             -webkit-text-fill-color:  ${settings.incorrectColor} !important;
+           }
+           #ansText {
+             text-shadow: none !important;
+           }
+           .scriptAnimated {
+             -webkit-animation-fill-mode: both;
+             -moz-animation-fill-mode: both;
+             -ms-animation-fill-mode: both;
+             -o-animation-fill-mode: both;
+             animation-fill-mode: both;
+             -webkit-animation-duration: 1s;
+             -moz-animation-duration: 1s;
+             -ms-animation-duration: 1s;
+             -o-animation-duration: 1s;
+             animation-duration: 1s
+           }
+           @keyframes fadeOutDown,
+           @-o-keyframes fadeOutDown
+           @-moz-keyframes fadeOutDown
+           @-webkit-keyframes fadeOutDown{
+             100% {
+               opacity: 0;
+               transform: translateY(-20px)
+             }
+           }
+            
+           .fadeOutDown {
+             -webkit-animation-name: fadeOutDown;
+             -moz-animation-name: fadeOutDown;
+             -o-animation-name: fadeOutDown;
+             animation-name: fadeOutDown
+           }`;
+        document.querySelector('head').append(style);
+        // $('head').append('<style>'+mrmr_css+'</style>');
     }
 
 
@@ -535,8 +557,8 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
     function reviewMain() {
         let settings = window.wkof.settings.mrmr;
         if (!settings.mrmrLessons && window.location.pathname.match(/(lesson)/i)) return;
-        let alert = '';
-
+        let alertText = '';
+        let submit = $('#answer-form button');
         var lightning = {
             installed: false,
             on: false,
@@ -544,11 +566,15 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             bolt: null,
             init: setLightningCompat
         };
+        let quiz = {
+            items: []
+        };
 
         lightning.init();
         var mrmr = initValues();
-        mrmr.load();
+        loadQuizItems().then(mrmr.load);
         installHTML();
+
 
         //======================================
         // Lightning Mode Compatibility
@@ -602,7 +628,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         });
 
         //======================================
-        // Mutation Observer
+        // Mutation Observers
         //======================================
         const target = document.getElementById('character');
         const options = { attributes: true, childList: true, subtree: true };
@@ -622,6 +648,63 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         const observer = new MutationObserver(callback);
         observer.observe(target, options);
 
+        // observer to replace alert text with custom exception message
+        // ripped basically 100% from Ethan's 'WK But No Cigar'
+        function replaceExceptionAlertText(){
+            let alertObserver = new MutationObserver(function (mutations) {
+                // iterate over mutations..
+                mutations.forEach(function (mutation) {
+                    if (mutation.addedNodes.length>0){
+                        if(mutation.addedNodes.item(0).classList){
+                            if(mutation.addedNodes.item(0).classList.contains("answer-exception-form")){
+                                if (/did you know/i.test(mutation.addedNodes.item(0).innerHTML)) {
+                                    // mutation.addedNodes.item(0).parentNode.removeChild(mutation.addedNodes.item(0));
+                                    mutation.addedNodes.item(0).style('display','none');
+                                } else {
+                                    mutation.addedNodes.item(0).innerHTML=`<span>${alertText}</span>`;
+                                }
+                                alertObserver.disconnect();
+                            }
+                        }
+                    }
+                });
+
+                let highLanders = document.querySelectorAll("#answer-exception");
+                if (highLanders.length > 1){ // There can be only one!!!
+                    for (let hL=1; hL<highLanders.length; hL++){
+                        highLanders[hL].parentNode.removeChild(highLanders[hL])
+                    }
+                }
+                console.log(document.getElementById('answer-exception'));
+                setTimeout(function() {
+                    const el = $("#answer-exception");
+                    el.stop(true,true).fadeOut(1000,"linear",
+                        function() {
+                            $(this).remove();
+                        });
+                    // el.stop(true,true).animate(
+                    //     {opacity:"toggle",top:'+=20px'},
+                    //     {
+                    //         duration: 1000,
+                    //         complete: function() {
+                    //             $(this).remove();
+                    //         }
+                    //     }
+                    // );
+
+                    // .classList.remove('animated','fadeInUp');
+                    // document.getElementById('answer-exception').classList.add('scriptAnimated','fadeOutDown');
+
+                }, 3000);
+            });
+
+            const settings = {
+                childList: true, subtree: true, attributes: false, characterData: false
+            };
+
+            alertObserver.observe(document.body, settings);
+        }
+
         //======================================
         // Key-up Listener
         //======================================
@@ -639,6 +722,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                         let text = t.val();
                         t.val(text + ' ').trigger('input');
                     }
+
                 } else
                 if ((key==='Backspace'||key===8) && settings.isBundled) {
                     mrmr.tries = (t.val().split(';').length-1);
@@ -651,6 +735,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         // Clear Values On mrmr Object
         //=============================================================================
         function initValues() {
+            submit.detach();
             return {
                 //item info
                 item: {},
@@ -669,12 +754,13 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                     all: [],
                     current: '',
                     spanText: [],
+                    empty: emptyArrays
                 },
 
                 //status
                 tries: 0,
                 exceptions: 0,
-                accFail: false,
+                tolFail: false,
                 convertedToPartial: false,
 
                 //functions
@@ -683,22 +769,27 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                 eval: {
                     answer: checkAnswer,
                     similarity: evalSimilarity,
-                    exception: checkException
                 },
                 submit: {
                     ready: false,
                     checkReady: checkSubmitReady,
-                    refuse: refuseSubmission,
                     exception: submitException,
                     formal: triggerSubmission
                 }
             };
         }
 
+        function emptyArrays() {
+            mrmr.answers.right.length   = 0;
+            mrmr.answers.spanText.length= 0;
+            // getAnswerArrays();
+        }
+
         //=============================================================================
         // Populate Item Info
         //=============================================================================
         function getItemInfo() {
+            console.log('getItemInfo...');
             if (window.location.pathname.match(/(review)/i)) {
                 mrmr.item = $.jStorage.get('currentItem');
                 mrmr.qType = $.jStorage.get('questionType');
@@ -711,6 +802,48 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             else if (mrmr.item.kan) mrmr.itemType = 'k';
             else mrmr.itemType = 'r';
 
+            getAnswerArrays();
+
+            mrmr.numPossible = mrmr.answers.possible.length;
+            mrmr.numRequired = getRequirements(mrmr.numPossible);
+            mrmr.showRemaining = (function(){
+                switch(settings.requirements) {
+                    case 'showOnly':
+                        return false;
+                    case 'minRequire':
+                        return (settings.minRequire !== '1' && settings.minRequire !== 1);
+                    default:
+                        return true;
+                }
+            }());
+
+            // get required emph for vocab
+            if (mrmr.item.voc) {
+                if(mrmr.item.voc.length===1) {
+                    let voc = findItem(quiz.items, 'id', mrmr.item.id);
+                    mrmr.item.data = findItem(quiz.items, 'id', voc.component_subject_ids[0]);
+                    mrmr.item.yomi = (function() {
+                            for (let i in mrmr.item.data.readings) {
+                                if (mrmr.item.kana[0]===mrmr.item.data.readings[i].reading) {
+                                    return mrmr.item.data.readings[i].type;
+                                }
+                            }
+                            return -1;
+                        }());
+                }
+                wk_mrmr.debugToggle && console.log(mrmr.item);
+            }
+
+
+            installHTML();
+            $('#divCorrect').removeClass();
+            $('#divCorrect').addClass('hidden');
+        }
+
+        // populates possible, removed arrays
+        function getAnswerArrays() {
+            console.log('getAnswerArrays...');
+            console.log(this);
             let type = mrmr.itemType + mrmr.qType;
             switch(type) {
                 case "vreading":
@@ -728,24 +861,8 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                     mrmr.answers.possible = mrmr.item.en.slice();
                     break;
             }
-
             if (mrmr.answers.possible.length > 1) removeCloseAnswers(mrmr.answers.possible);
-            mrmr.numPossible = mrmr.answers.possible.length;
-            mrmr.numRequired = getRequirements(mrmr.numPossible);
-
-            mrmr.showRemaining = (function(){
-                switch(settings.requirements) {
-                    case 'showOnly':
-                        return false;
-                    case 'minRequire':
-                        return (settings.minRequire !== '1' && settings.minRequire !== 1);
-                    default:
-                        return true;
-                }
-            }());
-            installHTML();
-            $('#divCorrect').removeClass();
-            $('#divCorrect').addClass('hidden');
+            mrmr.answers.all = mrmr.answers.possible.concat(mrmr.answers.removed);
         }
 
         function getRequirements(numPossible) {
@@ -784,6 +901,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         //======================================
         function removeCloseAnswers(answers) {
             wk_mrmr.debugToggle && console.log('removing close answers...');
+
             let similar = false;
 
             for (let i in answers) {
@@ -797,9 +915,11 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                         let t = wanakana.toRomaji(b,{upcaseKatakana:true});
                         bKanaFlag = (/[A-Z]/.test(t));
                         aKanaFlag = !bKanaFlag;
+                    } else if (mrmr.qType==='meaning'){
+                        similar = mrmr.eval.similarity(b,a);
+                        wk_mrmr.debugToggle && console.log(a + ' <-> ' + b + ': ' + similar);
                     }
-                    if (!bKanaFlag) similar = evalSimilarity(b,a);
-                    wk_mrmr.debugToggle && console.log(a + ' <-> ' + b + ': ' + similar);
+
                     if (similar || bKanaFlag) {
                         mrmr.answers.removed.push(b);
                         answers.splice(j,1);
@@ -808,6 +928,11 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
                 if (!aKanaFlag) answers.splice(i,0,a);
                 else mrmr.answers.removed.push(answers[i]);
             }
+            if (mrmr.qType === 'meaning') {
+                mrmr.answers.removed = mrmr.answers.removed.concat(answerChecker.filterAuxiliaryMeanings(mrmr.item.auxiliary_meanings, "whitelist"));
+                if (mrmr.item.syn) mrmr.answers.removed = mrmr.answers.removed.concat(mrmr.item.syn.slice());
+            }
+
             wk_mrmr.debugToggle && console.log(answers);
             wk_mrmr.debugToggle && console.log(mrmr.answers.removed);
         }
@@ -819,48 +944,74 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             wk_mrmr.debugToggle && console.log('starting answer check...');
             let text = $('#user-response').val();
             let spanText = '';
-            let result = {};
-            let accurate = true;
+            let result;
+            // let accurate = true;
+            let dupe = false;
+            let exceptionType = '';
 
             // sanitize/remove blank
             text = text.split(';');
             text = text.map(e=>e.trim());
             text = text.filter(e=>e.length);
 
-            if ((settings.isBundled && (text.length < mrmr.tries)) ||
-                text.length===0) {
+            if ((settings.isBundled && (text.length < mrmr.tries))
+                || text.length===0) {
                 mrmr.tries = (settings.isBundled)?text.length:mrmr.tries-1;
-                mrmr.submit.refuse(text,0);
+                mrmr.submit.exception(text,'blank');
                 return;
             }
 
             for (let i in text) {
-                result = evalAnswer(text[i]);
-                wk_mrmr.debugToggle && console.log(text[i] + ' <-> ' + mrmr.answers.current);
-                if (!result.passed && (result.exception && !settings.strict)) {
-                    mrmr.submit.exception(text[i]);
-                    return;
-                } else if ((result.passed && (!result.accurate && settings.disallowClose)) ||
-                            (result.dupe && !settings.strict)) {
+                if (mrmr.qType==='reading' && /n/i.test(text[i].charAt(text[i].length-1))) {
+                    text[i] = text[i].substr(0,text[i].length-1) + 'ん';
+                }
+
+                result = answerChecker.evaluate(mrmr.qType, text[i], true /*indicates informal submission*/);
+                if (result.passed && result.exception) {
+                    wk_mrmr.debugToggle && console.log('continuing after exception...');
                     mrmr.tries--;
                     text.splice(i,1);
-                    accurate = false;
+                    exceptionType = result.exceptionType;
+                    continue;
+                } else if (!result.passed && result.dupe) {
+                    dupe = true;
                 }
-                if (!(accurate===false && settings.disallowClose)) {
-                    spanText = (mrmr.answers.current.length>0)?mrmr.answers.current:text[i];
-                    spanText = wrapText(spanText,result.passed);
-                    mrmr.answers.spanText.push(spanText);
-                }
+
+                ((result.passed)
+                    ? (mrmr.answers.right.push(mrmr.answers.current),
+                       mrmr.answers.pulled.push(mrmr.answers.current))
+                    : mrmr.answers.wrong.push(mrmr.answers.current));
+
+                spanText = (mrmr.answers.current.length>0)?mrmr.answers.current:text[i];
+                spanText = wrapText(spanText,result.passed);
+                mrmr.answers.spanText.push(spanText);
+
                 mrmr.answers.current = '';
+                wk_mrmr.debugToggle && console.log(mrmr.answers);
             }
 
-            if (text.length < mrmr.numRequired && !accurate) {
-                if (result.dupe) mrmr.submit.refuse(text,2);
-                else mrmr.submit.refuse(text,1);
+            // add 'pass to fail by script' reason to end of wrong array for submission
+            if (mrmr.answers.wrong.length > 0) {
+                let pushText = '';
+                let reading = (mrmr.qType === 'reading');
+                switch (true) {
+                    case (reading && dupe): pushText = 'じゅうふくな　とうあんが　にゅうりょくされました'; break;
+                    case (!reading && dupe): pushText = 'Duplicate answer entered'; break;
+                    case (reading && mrmr.tolFail): pushText = 'Answer outside of tolerance bounds'; break;
+                    case (!reading && mrmr.tolFail): pushText = 'とうあんは こうさの　そとに　あります'; break;
+                }
+                wk_mrmr.debugToggle && console.log(pushText);
+                if (pushText.length > 0) mrmr.answers.wrong.push(pushText);
+            }
+
+            wk_mrmr.debugToggle && console.log(`exception count: ${mrmr.exceptions}`);
+            if (mrmr.exceptions > 0) {
+                mrmr.submit.exception(text,exceptionType);
                 return;
             }
-            if (mrmr.answers.right.length < mrmr.numRequired &&
-                $('#divCorrect').hasClass('hidden')){
+
+            if (mrmr.answers.right.length < mrmr.numRequired
+                && $('#divCorrect').hasClass('hidden')){
                 showBar();
             }
 
@@ -869,156 +1020,94 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         }
 
         //======================================
-        // evalAnswer() -> eval each answer
-        //======================================
-        function evalAnswer(text) {
-            wk_mrmr.debugToggle && console.log('evaluating single answer...');
-            let similar = false;
-            let match   = false;
-            let result  = {};
-            let type    = mrmr.qType;
-
-            // if (mrmr.answers.pulled.length > 0) {
-            //     let regex = new RegExp ('^('+mrmr.answers.pulled.join("|")+')$',"mi");
-            //     similar = regex.test(text); // quick exact dupe check
-            //     wk_mrmr.debugToggle && console.log('dupe check: ' + similar);
-            //     if (type === 'meaning' && !similar &&
-            //         ((mrmr.answers.pulled.length + mrmr.answers.possible.length)< mrmr.item.en.length)){
-            //         let regex = new RegExp ('^('+mrmr.item.en.join("|")+')$',"mi");
-            //         match = regex.test(text); // quick exact match check
-            //     }
-            // }
-
-            result = answerChecker.evaluate(type,text, true /*indicates from script*/);
-            switch (result.passed===true) {
-                case false:
-                    result.exception = (!result.exception)?mrmr.eval.exception(text):true;
-                    if (!settings.strict &&
-                        ((similar && !settings.isBundled) || result.exception)) {
-                        mrmr.tries--;
-                        if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
-                        if (result.exception) {mrmr.exceptions++;}
-                        return result;
-                    }
-                    break;
-                case true:
-                    if (!result.accurate && settings.disallowClose && !result.dupe) {
-                        if (mrmr.accFail) result.passed = false;
-                        else return result;
-                    } else if (result.dupe && !settings.strict) {
-                    }
-                    break;
-            }
-
-            if (result.dupe) {
-                result = answerChecker.evaluate(type, "nice try buckaroo can't fool me");
-                result.dupe = true;
-                if (settings.strict || settings.isBundled) {
-                    let dupeText = '';
-                    if ($('#user-response').attr('lang')==='ja') dupeText='じゅうふくな　かいとうが　にゅうりゅおくされました';
-                    else dupeText = 'Duplicate answer entered';
-                    mrmr.answers.wrong.push(dupeText);
-                    mrmr.answers.all.push(text);
-                }
-            }
-
-            mrmr.answers.all.push(text);
-            if (result.passed) mrmr.answers.right.push(text);
-            else if (!result.dupe) mrmr.answers.wrong.push(text);
-            wk_mrmr.debugToggle && console.log(mrmr);
-            return result;
-        }
-
-        //======================================
         // Modified Answer Checker
         //======================================
         answerChecker.oldEval = answerChecker.evaluate;
-        answerChecker.evaluate = function(e,t, flag = false) {
+        answerChecker.evaluate = function(e,t, informal = false) {
             wk_mrmr.debugToggle && console.log('running modified evaluate...');
             let result = answerChecker.oldEval(e,t);
-            if (flag) {
-                if (result.passed && !result.accurate && settings.strict) return result;
-                let match  = true;
-                result.accFail = false;
+            let found  = false;
+
+            if (informal) {
+                if (result.passed && !result.accurate && settings.strict) return result.passed = false, result;
+
+                let match  = false;
+                result.wrongYomi = false;
+                result.tolFail = false;
+                result.found = found;
                 result.dupe = false;
+
+                let reading = (mrmr.qType === 'reading');
+                let text = (reading)?wanakana.toRomaji(t):t;
+                let pulled   = (reading) ? mrmr.answers.pulled.map(e=>wanakana.toRomaji(e))   : mrmr.answers.pulled;
+                let possible = (reading) ? mrmr.answers.possible.map(e=>wanakana.toRomaji(e)) : mrmr.answers.possible;
+                let removed  = (reading) ? mrmr.answers.removed.map(e=>wanakana.toRomaji(e))  : mrmr.answers.removed;
+
+                wk_mrmr.debugToggle && console.log(result);
                 if (result.passed) {
-                    let answer = '';
+                    // correct && accurate
                     if (result.accurate) {
-                        let dupe  = new RegExp('^('+mrmr.answers.pulled.join("|")+')$',"mi");
-                        dupe = dupe.test(t);
-                        if (!dupe) {
-                            let regex = new RegExp('^('+mrmr.answers.possible.join("|")+')$',"mi");
-                            match = regex.test(t);
-                            if (!match) {
-                                let lcAnswers = mrmr.answers.removed.map(e=>e.toLowerCase());
-                                let tIndex = lcAnswers.indexOf(t.toLowerCase());
-                                answer = mrmr.answers.removed[tIndex];
-                                mrmr.answers.removed.splice(tIndex,1);
-                            } else {
-                                let lcAnswers = mrmr.answers.possible.map(e=>e.toLowerCase());
-                                let tIndex = lcAnswers.indexOf(t.toLowerCase());
-                                answer = mrmr.answers.possible[tIndex];
-                                mrmr.answers.possible.splice(tIndex,1);
+                        const dupe = genRegex(pulled);
+                        if (!dupe.test(text)) { // not dupe of prev answer
+                            const regex = genRegex(possible);
+                            match = regex.test(text);
+                            if (!match) { // answer in removed array
+                                found = findMatch(text,removed,'removed',true);
+                            } else { // answer in possible array
+                                found = findMatch(text,possible,'possible',true);
                             }
-                        } else {
-                            return result.dupe = true, result;
+                        } else { // exact dupe of prev answer
+                            result.exception = true;
+                            result.dupe = true;
+                            return result;
                         }
-                        mrmr.answers.pulled.push(answer);
-                    } else {
-                        let closest = -1, answer = '';
-                        let dt, ld, tol, userTol;
-
-                        let answers = (e==='meaning')?mrmr.item.en.slice():mrmr.item.kana.slice();
-                        for (let i in answers) {
-                            let v = answerChecker.stringFormat(answers[i]);
-                            t = answerChecker.stringFormat(t);
-                            if ((ld=levenshteinDistance(v,t))<=(dt=answerChecker.distanceTolerance(v))) {
-                                if (closest < 0) closest = ld;
-                                else closest = Math.min(closest,ld);
-                                answer = answers[i];
-                                wk_mrmr.debugToggle && console.log(closest + '  ' + answer);
-                                if (closest === 1) break;
-                            }
-                        }
-
-                        dt = answerChecker.distanceTolerance(answer);
-                        ld = levenshteinDistance(answer.toLowerCase(),t);
-                        tol = parseInt(dt);
-                        userTol = settings.tolerance;
-                        tol = ((tol-userTol)<0)?0:tol-userTol;
-                        wk_mrmr.debugToggle && console.log('ld: ' + ld + '  tol: ' + tol);
-                        if (ld>tol) {
-                            mrmr.accFail = true;
-                            result.accFail = true;
-                        } else {
-                            let index = mrmr.answers.removed.indexOf(answer);
-                            let dupe  = mrmr.answers.pulled.indexOf(answer);
-                            if (index >= 0 && !settings.disallowClose){
-                                mrmr.answers.removed.splice(index,1);
-                                wk_mrmr.debugToggle && console.log('removed');
-                                for (let i in mrmr.answers.possible) {
-                                    if (evalSimilarity(mrmr.answers.possible[i],answer)) {
-                                        mrmr.answers.possible.splice(i,1);
-                                        break;
-                                    }
-                                }
-                            } else if (dupe < 0 && !settings.disallowClose) {
-                                index = mrmr.answers.possible.indexOf(answer);
-                                mrmr.answers.possible.splice(index,1);
-                                wk_mrmr.debugToggle && console.log('possible');
-                            } else {
-                                return result.dupe = true, result;
-                            }
-                            mrmr.answers.pulled.push(answer);
-
-                        }
-                        wk_mrmr.debugToggle && console.log(answer);
-                        wk_mrmr.debugToggle && console.log(mrmr.answers.pulled);
                     }
-                    mrmr.answers.current = answer;
+                    // not accurate OR disallowClose is off
+                    if (!found && (!result.accurate || !settings.disallowClose)) {
+                        wk_mrmr.debugToggle && console.log('running against all answers...');
+
+                        let allAnswers = pulled.concat(possible,removed);
+                        found = findMatch(text, allAnswers);
+
+                        switch(true) {
+                            case pulled.indexOf(found.answer) > -1:
+                                found.type = 'pulled';
+                                result.dupe = true;
+                                break;
+                            case possible.indexOf(found.answer) > -1:  found.type = 'possible'; break;
+                            case removed.indexOf(found.answer) > -1:   found.type = 'removed'; break;
+                        }
+                    }
+                } else if ((!result.passed && result.exception && reading)
+                            || (!result.passed && mrmr.item.yomi)) {
+                    result.wrongYomi = true;
+                }
+
+                mrmr.answers.current = (
+                    result.passed
+                        ? (reading
+                            ? wanakana.toKana(found.answer)
+                            : found.answer)
+                        : t
+                );
+
+                setExceptionStatus(result, found, t); // use original, unmodified user answer
+                setPassingStatus(result, found);
+                wk_mrmr.debugToggle && console.log('informal answerChecker\'s "found":');
+                wk_mrmr.debugToggle && console.log(found);
+            } else {
+                if (mrmr.exceptions > 0) {
+                    wk_mrmr.debugToggle && console.log('formal exception submit for alert...');
+                    result.passed = true;
+                    result.exception = true;
+                    if (t==='exception' || t==='れいがいは　あります') {
+                        t = '';
+                    }
+                    $('#user-response').val(t).trigger('input');
+                    replaceExceptionAlertText();
                 }
             }
-
+            result.found = found;
             wk_mrmr.debugToggle && console.log(result);
             return result;
         };
@@ -1030,6 +1119,10 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             wk_mrmr.debugToggle && console.log('checking similarity...');
             let l,s;
             // use longer string when getting distanceTolerance
+            if (mrmr.qType === 'reading') {
+                  entry = wanakana.toRomaji(entry);
+                  original = wanakana.toRomaji(original);
+            }
             if (entry.length <= original.length) {
                 s = entry.toLowerCase();
                 l = original.toLowerCase();
@@ -1042,97 +1135,200 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             return (levenshteinDistance(s,l)<=answerChecker.distanceTolerance(l));
         }
 
-        function checkException(text) {
-            if (mrmr.qType==='meaning') return answerChecker.isKanaPresent(text);
-            else return answerChecker.isNonKanaPresent(text);
+        function findMatch(entry, array, name = false, exact=false) {
+            wk_mrmr.debugToggle && console.log('finding match...');
+
+            let results = {
+                index: -1,
+                answer: '',
+                type: '',
+                tolFail: false
+            };
+            let t, dt, ld, tol, userTol;
+
+            // If dupe, go straight for indexOf, otherwise loop to look for closest match
+            if (exact) {
+                let lcArray = array.map(e=>e.toLocaleLowerCase());
+                results.index = lcArray.indexOf(entry.toLocaleLowerCase());
+            } else {
+                t = answerChecker.stringFormat(entry);
+                let closest = -1;
+                for (let i in array) {
+                    let v = answerChecker.stringFormat(array[i]);
+                    if ((ld = levenshteinDistance(v, t)) <= (dt = answerChecker.distanceTolerance(v))) {
+                        closest = (closest < 0) ? ld : Math.min(closest, ld);
+                        if (ld <= closest) {
+                            results.answer = array[i];
+                            results.index = i;
+                        }
+                    }
+                }
+            }
+
+            if(results.index>-1) {
+                wk_mrmr.debugToggle && console.log('match found, setting index and checking tolerance...');
+                results.array = array;
+                results.answer = array[results.index];
+                if (!exact) {
+                    dt = answerChecker.distanceTolerance(results.answer);
+                    ld = levenshteinDistance(results.answer.toLocaleLowerCase(),t);
+                    tol = parseInt(dt);
+                    userTol = settings.tolerance;
+                    tol = ((tol-userTol)<0)?0:tol-userTol;
+                    if (ld>tol) { // check accuracy against custom tolerance
+                        mrmr.tolFail = true;
+                        results.tolFail = true;
+                    } else {
+                        results.type = name;
+                    }
+                } else {
+                    results.type = name;
+                }
+            } else {
+                return false;
+            }
+            wk_mrmr.debugToggle && console.log(results);
+            return results;
+        }
+
+        function setExceptionStatus(result, found, userAnswer) {
+            wk_mrmr.debugToggle && console.log('setting exception status...');
+            let kanaException = false;
+            if (settings.strict) {
+                result.exception = ((!found || found.tolFail)
+                                    && (result.dupe || result.wrongYomi));
+            } else {
+                switch (true) {
+                    case result.dupe:
+                    case result.wrongYomi:
+                    // inaccurate, but within tolerance, kana
+                    case (settings.disallowClose && !result.passed && mrmr.qType === 'reading' && found):
+                    // inaccurate, but within tolerance, meaning
+                    case (settings.disallowClose && result.passed && !result.accurate && !result.tolFail):
+                        wk_mrmr.debugToggle && console.log('fallthrough exception case');
+                        result.exception = true;
+                        break;
+                    default:
+                        if (!result.exception) {
+                            // check for kana/non-kana exception
+                            kanaException = ((mrmr.qType==='meaning')
+                                ? answerChecker.isKanaPresent(userAnswer)
+                                : answerChecker.isNonKanaPresent(userAnswer));
+                            result.exception = kanaException;
+                        }
+                        break;
+                }
+
+                wk_mrmr.debugToggle && console.log(`exception status: ${result.exception}`);
+                // set exceptionType for use in setting alertText and increment exception count
+                if (result.exception) {
+                    mrmr.exceptions++;
+                    switch (true) {
+                        case result.wrongYomi: result.exceptionType = 'yomi'; break;
+                        case kanaException: result.exceptionType = 'type'; break;
+                        case !result.dupe: result.exceptionType = 'close'; break;
+                        case result.dupe: result.exceptionType = 'dupe'; break;
+                        default: result.exceptionType = '';
+                    }
+                    wk_mrmr.debugToggle && console.log(`exception type: ${result.exceptionType}`);
+                }
+            }
+
+        }
+
+        function setPassingStatus(result, found) {
+            wk_mrmr.debugToggle && console.log('setting passing status...');
+            // fail == fail, can't be changed to pass at this point
+            if (result.passed && !result.exception) { // exceptions always set to passed
+                switch(true) {
+                    case (found.tolFail):
+                        result.tolFail = true;
+                    case (settings.strict && (result.tolFail || result.dupe)):
+                        result.passed = false;
+                        break;
+                }
+            } else if (!result.passed && result.exception) {
+                result.passed = true;
+            }
         }
 
         //=============================================================================
         // Submissions: Refusals and Exceptions
         //=============================================================================
-        function refuseSubmission(text,type) {
-            wk_mrmr.debugToggle && console.log('refusing submission...');
-            let urText = text;
+        function submitException(text,type) {
+            wk_mrmr.debugToggle && console.log('submitting exception...');
             let lblText = '';
-            if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
 
+            text = ((Array.isArray(text) && (text.length > 0))
+                ? text.join('; ') + '; '
+                : ((mrmr.qType==='reading')
+                        ? 'れいがいは　あります'
+                        : 'exception'));
+
+            if (settings.showNumPossible && mrmr.showRemaining) updateRemaining();
             if (settings.isBundled || mrmr.answers.spanText.length===0) {
-                mrmr.answers.possible = mrmr.answers.possible.concat(mrmr.answers.pulled);
-                if (mrmr.numPossible>1) {
-                    mrmr.answers.removed.length = 0;
-                    mrmr.answers.possible = removeCloseAnswers(mrmr.answers.possible);
-                }
-                mrmr.answers.right.length = 0;
-                mrmr.answers.all.length = 0;
-                mrmr.answers.pulled.length = 0;
-                mrmr.answers.spanText.length = 0;
-                urText = urText.join('; ');
-                switch (type) {
-                    case 0: lblText = 'Blank answer(s) submitted, please try again.'; break;
-                    case 1: lblText = 'Not quite accurate... try again.'; break;
-                    case 2: lblText = 'Duplicate answer entered.'; break;
-                }
+                mrmr.answers.empty();
+                 // ? text += '; ': ;
             } else {
                 lblText = mrmr.answers.spanText.join(', ');
+                if (lblText.length>0) {
+                    $('#lblCorrect').html(lblText);
+                    showBar();
+                }
             }
 
-            if (urText.length > 0) urText += '; ';
-            $('#user-response').val(urText).trigger('input');
-            $('#lblCorrect').html(lblText);
-            showBar();
+            $('#user-response').val(text).trigger('input');
+            setAlert(type);
+            mrmr.submit.formal();
             wk_mrmr.debugToggle && console.log(mrmr);
         }
 
-        function submitException(text) {
-            wk_mrmr.debugToggle && console.log('submitting exception...');
-            text = (mrmr.answers.wrong.length > 0)?mrmr.answers.wrong[0]:text;
-            $('#user-response').val(text).trigger('input');
-            mrmr.submit.formal();
-        }
 
         //=============================================================================
         // Submissions: Prep and Check Readiness
         //=============================================================================
+        // returns html text string (i.e. '<span class="correct">Correct Answer</span>')
         function wrapText(text,result) {
             wk_mrmr.debugToggle && console.log('wrapping text...');
+
             if (isColorful(settings.themeName) && mrmr.answers.wrong.length > 0) {
                 result = (result)?'correctPartial':'incorrect';
                 if (mrmr.answers.spanText.length > 1 && !mrmr.convertedToPartial) {
-                    $.each(mrmr.answers.spanText, function(i,v) {
-                        v.replace('correct','correctPartial');
+                    mrmr.answers.spanText.forEach(e => {
+                       e.replace('correct','correctPartial');
                     });
                     mrmr.convertedToPartial = true;
                 }
             } else {
                 result = (result)?'correct':'incorrect';
             }
+
             return ('<span class="' + result + '">' + text + '</span>');
         }
 
+        // fires formal submit if ready or exceptions exist
         function checkSubmitReady() {
             wk_mrmr.debugToggle && console.log('checking submit ready...');
-            let submissionText = '';
-            if ((!settings.isBundled && mrmr.answers.wrong.length > 0) ||
-                (mrmr.answers.possible.length===0 || mrmr.answers.pulled.length >= mrmr.numRequired)) {
+
+            if ((!settings.isBundled && mrmr.answers.wrong.length > 0)
+                || (mrmr.answers.right.length + mrmr.answers.wrong.length) >= mrmr.numRequired) {
                 mrmr.submit.ready = true;
                 populateBar();
             } else {mrmr.submit.ready = false;}
 
-            switch (mrmr.submit.ready===true) {
+            switch (mrmr.submit.ready) {
                 case true:
-                    if (mrmr.answers.wrong.length > 0) {
-                        if (mrmr.accFail) submissionText = 'Answer(s) outside of tolerance bounds.';
-                        else submissionText = mrmr.answers.wrong[mrmr.answers.wrong.length-1];
-                    } else {
-                        submissionText = mrmr.answers.right[mrmr.answers.right.length-1];
-                    }
-                    $('#user-response').val(submissionText).trigger('input');
+                    let input;
+                    (mrmr.answers.wrong.length>0
+                        ? input = mrmr.answers.wrong.pop()
+                        : input = mrmr.answers.right.pop());
+                    $('#user-response').val(input).trigger('input');
                     mrmr.submit.formal();
                     break;
                 case false:
                     $('#user-response').val('').trigger('input');
                     if (mrmr.exceptions===0) showBar();
-                    else mrmr.submit.formal();
+                    else mrmr.submit.formal().then(submit.detach());
                     break;
             }
         }
@@ -1142,25 +1338,26 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
         //=============================================================================
         function triggerSubmission() {
             wk_mrmr.debugToggle && console.log('triggering submission...');
-            let button = $('#answer-form button');
+            $('#answer-form fieldset').append(submit);
             if (mrmr.exceptions > 0) {
-                button.trigger('click');
+                submit.trigger('click');
                 mrmr.exceptions = 0;
             } else {
                 if (lightning.installed) {
                     checkLightning();
-                    if (lightning.on && settings.showRest && (mrmr.tries<mrmr.numPossible)) {
+                    if (lightning.on && settings.showRest
+                        && (mrmr.tries<mrmr.answers.possible.concat(mrmr.answers.removed).length)) {
                         lightning.bolt.trigger('click');
                         wk_mrmr.debugToggle && console.log('click lightning!');
                         lightning.clicked = true;
                     }
                 }
                 $('#divCorrect').removeClass('hidden');
-                button.trigger('click');
+                submit.trigger('click');
 
-
-                if (settings.showRest && mrmr.answers.possible.length>0) {
-                    if ($('#divCorrect').hasClass('hidden')) showBar();
+                if (settings.showRest && mrmr.answers.possible.length>0
+                    && $('#divCorrect').hasClass('hidden')) {
+                    showBar();
                 }
             }
         }
@@ -1178,6 +1375,7 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             $('#lblCorrect').css('display','block');
         }
 
+        // fills answer bar beneath user-response with user and, if exists, extra answers beyond reqs
         function populateBar() {
             wk_mrmr.debugToggle && console.log('populating bar...');
             let barText = '';
@@ -1191,14 +1389,85 @@ const MutationObserver = window.MutationObserver || window.WebKitMutationObserve
             } else if (!divCorrect.hasClass('incorrect')){
                 if (!divCorrect.hasClass('correct')) divCorrect.addClass('correct');
             }
-
-            if (mrmr.submit.ready && settings.showRest && mrmr.answers.possible.length>0) {
-                barText = $.merge(mrmr.answers.spanText,mrmr.answers.possible);
+            let allAnswers = mrmr.answers.possible.concat(mrmr.answers.removed);
+            if (mrmr.submit.ready && settings.showRest
+                && (allAnswers.length > mrmr.answers.pulled.length)) {
+                barText = mrmr.answers.spanText.concat(allAnswers.filter(i=>!mrmr.answers.pulled.includes(i)));
             } else { barText = mrmr.answers.spanText; }
-            wk_mrmr.debugToggle && console.log('spanText: ' + mrmr.answers.spanText);
             barText = barText.join(', ');
             $('#lblCorrect').html(barText);
         }
+
+        // on result.accurate, used for quick dupe check
+        // and to determine which array is passed to findMatch()
+        function genRegex(array) {
+            return new RegExp('^('+array.join("|")+')$',"mi");
+        }
+
+        // sets alert text which populates WaniKani's little popup dealy
+        function setAlert(type) {
+            wk_mrmr.debugToggle && console.log('setting alert text...');
+            let types = ['meaning','reading'];
+            let yomi, nonyomi;
+            const queType = (mrmr.qType==='meaning')?types.shift():types.pop();
+            const notType = types[0];
+            /* for future update, when I figure out how to access properties not included in quiz item object */
+            if (queType==='reading'){
+                let yomis = ['kunyomi','onyomi'];
+                yomi = (function() {
+                    if (mrmr.item.voc) {
+                        return yomis.splice(yomis.indexOf(mrmr.item.yomi),1);
+                    } else {
+                        return ((mrmr.item.emph==='kun') ? yomis.shift():yomis.pop());
+                    }
+                })();
+                nonyomi = yomis[0];
+            }
+
+            switch (type) {
+                case 'blank': alertText = 'Blank answer(s) submitted...'; break;
+                case 'dupe' : alertText = 'Duplicate answer(s) submitted...'; break;
+                case 'type' : alertText = `WaniKani is looking for the ${queType}, not the ${notType}...`; break;
+                case 'yomi' : alertText = `WaniKani is looking for the ${yomi}, not the ${nonyomi}...`; break;
+                case 'close': alertText = 'Not quite accurate... try again.'; break;
+                default: alertText = '';
+            }
+            if(mrmr.exceptions===0)mrmr.exceptions++;
+        }
+
+        // gets array of all vocab & kanji items using wkof
+        // used to find required reading of vocab items
+        function loadQuizItems() {
+            let config = {
+                wk_items: {
+                    filters: {
+                        item_type: {
+                            radical: false,
+                            kanji:   true,
+                            vocabulary: true
+                        }
+                    },
+                    options: {
+                        assignments: true
+                    }
+                }
+            };
+            return wkof.ItemData.get_items(config)
+                .then( function(items) {
+                    quiz.items = items;
+                });
+        }
+
+        // returns wkof item object (find by id)
+        function findItem(array, attr, value) {
+            for(let i = 0; i < array.length; i += 1) {
+                if(array[i][attr] === value) {
+                    return quiz.items[i].data;
+                }
+            }
+            return -1;
+        }
+
     }
 
 
